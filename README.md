@@ -20,6 +20,7 @@ source:
 ## 🎯 Purpose
 
 This repository provides:
+
 - **Specifications & RFCs** - API contracts, architecture decisions, design docs
 - **Agent Rules** - AI agent prompts, coding standards, best practices
 - **Build Components** - Reusable NUKE build targets for .NET/Unity projects
@@ -29,6 +30,7 @@ This repository provides:
 ## 🏗️ Architecture
 
 Satellite repos (like `lablab-bean`) consume this hub via:
+
 1. **`.hub-manifest.toml`** - Pins versions of packs to use
 2. **`task hub:sync`** - Fetches assets to `.hub-cache/` (gitignored)
 3. **Runtime access** - Agents read rules, builds use NUKE components
@@ -62,9 +64,12 @@ lunar-snake-hub/
 │       └── *.enc.yaml
 ├── .github/
 │   └── workflows/      # Reusable GitHub Actions
-└── docs/               # Documentation
-    ├── architecture/   # Design docs
-    └── guides/         # How-to guides
+├── docs/               # Documentation
+│   ├── README.md       # 📖 Documentation index
+│   ├── architecture/   # Design docs & decisions
+│   ├── guides/         # How-to guides
+│   ├── operations/     # Runbooks & procedures
+│   └── sessions/       # Session handovers & progress
 ```
 
 ## 🚀 Quick Start (For Satellites)
@@ -72,6 +77,7 @@ lunar-snake-hub/
 ### 1. Add manifest to your project
 
 **`.hub-manifest.toml`:**
+
 ```toml
 [hub]
 repo = "GiantCroissant-Lunar/lunar-snake-hub"
@@ -85,6 +91,7 @@ precommit = "0.1.0"
 ### 2. Add sync task
 
 **`Taskfile.yml`:**
+
 ```yaml
 tasks:
   hub:sync:
@@ -104,6 +111,7 @@ tasks:
 ### 3. Gitignore synced content
 
 **`.gitignore`:**
+
 ```
 .hub-cache/
 .agent          # If using symlink
@@ -119,21 +127,28 @@ task hub:sync
 
 ## 📚 Documentation
 
+**📖 [Documentation Index](docs/README.md)** - Complete guide to all documentation
+
+### Quick Access
+
+- **[Quick Start](docs/operations/START_HERE.md)** - What to read first
+- **[Phase 1 Progress](docs/sessions/PHASE1_PROGRESS.md)** - Current implementation status
+- **[MCP Setup](docs/operations/MCP_SETUP.md)** - Smithery server configuration
 - **[Architecture Discussion](docs/architecture/ARCHITECTURE_DISCUSSION.md)** - Complete system design
-- **[Quick Reference](docs/architecture/ARCHITECTURE_QUICK_REF.md)** - Command cheat sheets
-- **[Decisions Summary](docs/architecture/YOUR_DECISIONS_SUMMARY.md)** - Design decisions & rationale
-- **[Phase 1 Checklist](docs/guides/PHASE1_CHECKLIST.md)** - Implementation guide
+- **[Phase 1 Checklist](docs/guides/PHASE1_CHECKLIST.md)** - Step-by-step implementation guide
 
 ## 🔐 Secrets Management
 
 Secrets are encrypted with [SOPS](https://github.com/mozilla/sops) and stored in `infra/secrets/*.enc.yaml`.
 
 **Decrypt:**
+
 ```bash
 sops decrypt infra/secrets/mac-mini.enc.yaml
 ```
 
 **Encrypt:**
+
 ```bash
 sops encrypt infra/secrets/mac-mini.yaml > infra/secrets/mac-mini.enc.yaml
 ```
@@ -141,6 +156,7 @@ sops encrypt infra/secrets/mac-mini.yaml > infra/secrets/mac-mini.enc.yaml
 ## 🛠️ Infrastructure Services
 
 This hub supports a Mac Mini "brain" running:
+
 - **Letta** - Persistent agent memory
 - **Qdrant** - Vector database for RAG
 - **Context Gateway** - HTTP API for context retrieval
@@ -151,6 +167,7 @@ See `infra/README.md` for setup.
 ## 📦 Versioning
 
 Releases are tagged by pack type:
+
 - `packs-agents-v0.1.0` - Agent rules/prompts
 - `packs-nuke-v0.1.0` - NUKE build components
 - `packs-precommit-v0.1.0` - Pre-commit hooks
