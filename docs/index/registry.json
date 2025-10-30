@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2025-10-30T20:50:00Z",
+  "generated_at": "2025-10-30T21:00:00Z",
   "repository": "lunar-snake-hub",
-  "total_documents": 18,
+  "total_documents": 20,
   "documents": [
     {
       "doc_id": "DOC-2025-00001",
@@ -183,11 +183,31 @@
       "canonical": true,
       "created": "2025-10-30",
       "tags": ["infrastructure", "secrets", "sops", "docker", "reference"]
+    },
+    {
+      "doc_id": "DOC-2025-00019",
+      "title": "Pre-commit Hooks Pack",
+      "path": "precommit/README.md",
+      "doc_type": "reference",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["precommit", "git-hooks", "quality", "automation"]
+    },
+    {
+      "doc_id": "DOC-2025-00020",
+      "title": "Pre-commit Hooks Organization",
+      "path": "precommit/ORGANIZATION.md",
+      "doc_type": "reference",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["precommit", "organization", "structure", "best-practices"]
     }
   ],
   "stats": {
     "by_type": {
-      "reference": 4,
+      "reference": 6,
       "plan": 2,
       "guide": 9,
       "spec": 1,
@@ -197,12 +217,12 @@
       "glossary": 0
     },
     "by_status": {
-      "active": 18,
+      "active": 20,
       "draft": 0,
       "superseded": 0,
       "rejected": 0,
       "archived": 0
     }
   },
-  "next_doc_id": "DOC-2025-00019"
+  "next_doc_id": "DOC-2025-00021"
 }
