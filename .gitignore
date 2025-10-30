@@ -9,6 +9,7 @@
 *.swp
 *.swo
 *~
+cline_mcp_settings.json
 
 # Python
 __pycache__/
