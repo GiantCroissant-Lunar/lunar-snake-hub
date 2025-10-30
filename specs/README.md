@@ -40,6 +40,7 @@ specs/
 ## Satellite Consumption
 
 **`.hub-manifest.toml`:**
+
 ```toml
 [specs]
 auth-api = "1.2.0"          # Pins to specific version
@@ -47,6 +48,7 @@ inventory-system = "0.7.1"
 ```
 
 **Sync:**
+
 ```bash
 task hub:sync  # Fetches only pinned specs to .hub-cache/specs/
 ```
@@ -54,6 +56,7 @@ task hub:sync  # Fetches only pinned specs to .hub-cache/specs/
 ## Contract Tests (Phase 2)
 
 Contract tests enforce that implementations comply with specs:
+
 ```csharp
 // specs/auth-api/v1.2/contract-tests/dotnet/AuthApiContractTests.cs
 [Fact]
