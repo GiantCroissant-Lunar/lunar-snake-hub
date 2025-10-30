@@ -1,0 +1,68 @@
+- name: Ensure Homebrew is installed
+  stat:
+    path: /opt/homebrew/bin/brew
+  register: homebrew_check
+  failed_when: not homebrew_check.stat.exists
+  changed_when: false
+
+- name: Install Homebrew packages
+  become: false
+  homebrew:
+    name: '{{ item }}'
+    state: present
+  loop: '{{ homebrew_packages }}'
+  when: ansible_facts['os_family'] == 'Darwin'
+
+- name: Verify Docker is installed
+  command: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Print Docker version
+  debug:
+    msg: 'Docker installed: {{ docker_version.stdout }}'
+
+- name: Verify docker-compose is installed
+  command: docker compose version
+  register: docker_compose_version
+  changed_when: false
+
+- name: Print Docker Compose version
+  debug:
+    msg: 'Docker Compose installed: {{ docker_compose_version.stdout }}'
+
+- name: Verify SOPS is installed
+  command: sops --version
+  register: sops_version
+  changed_when: false
+
+- name: Print SOPS version
+  debug:
+    msg: 'SOPS installed: {{ sops_version.stdout }}'
+
+- name: Verify age is installed
+  command: age --version
+  register: age_version
+  changed_when: false
+
+- name: Print age version
+  debug:
+    msg: 'age installed: {{ age_version.stdout }}'
+
+- name: Verify GitHub CLI is installed
+  command: gh --version
+  register: gh_version
+  changed_when: false
+
+- name: Print GitHub CLI version
+  debug:
+    msg: 'GitHub CLI installed: {{ gh_version.stdout }}'
+
+- name: Verify Task is installed
+  command: task --version
+  register: task_version
+  changed_when: false
+
+- name: Print Task version
+  debug:
+    msg: 'Task installed: {{ task_version.stdout }}'

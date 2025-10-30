@@ -1,0 +1,87 @@
+- name: Ensure Docker is running
+  command: docker info
+  register: docker_info
+  changed_when: false
+  failed_when: docker_info.rc != 0
+
+- name: Create Docker data directories
+  file:
+    path: '{{ item }}'
+    state: directory
+    mode: '0755'
+  loop:
+  - '{{ docker_data_path }}'
+  - '{{ docker_data_path }}/letta'
+  - '{{ docker_data_path }}/qdrant'
+  - '{{ docker_data_path }}/n8n'
+  - '{{ docker_data_path }}/gateway'
+
+- name: Check if .env.enc exists
+  stat:
+    path: '{{ docker_compose_path }}/.env.enc'
+  register: env_enc_stat
+
+- name: Decrypt .env file from .env.enc
+  shell: |
+    export SOPS_AGE_KEY_FILE="{{ sops_age_key_file }}"
+    sops decrypt "{{ docker_compose_path }}/.env.enc" > "{{ docker_compose_path }}/.env"
+  when: env_enc_stat.stat.exists
+
+- name: Check if .env exists (decrypted or plain)
+  stat:
+    path: '{{ docker_compose_path }}/.env'
+  register: env_stat
+
+- name: Warn if .env is missing
+  fail:
+    msg: |
+      ⚠️  .env file not found!
+
+      Please create {{ docker_compose_path }}/.env with:
+      - OPENAI_API_KEY=<your-glm-jwt-token>
+      - OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+      - GATEWAY_TOKEN=<generate-random-token>
+
+      Then encrypt it:
+      sops encrypt {{ docker_compose_path }}/.env > {{ docker_compose_path }}/.env.enc
+
+      And commit only the .env.enc file.
+  when: not env_stat.stat.exists
+
+- name: Pull Docker images
+  command: docker compose pull
+  args:
+    chdir: '{{ docker_compose_path }}'
+  environment:
+    DOCKER_BUILDKIT: '1'
+
+- name: Start Docker services
+  command: docker compose up -d
+  args:
+    chdir: '{{ docker_compose_path }}'
+
+- name: Wait for Letta to be ready
+  uri:
+    url: http://localhost:{{ letta_port }}/v1/health
+    method: GET
+    status_code: 200
+  register: letta_health
+  until: letta_health.status == 200
+  retries: 30
+  delay: 2
+  failed_when: false
+
+- name: Display service status
+  debug:
+    msg: |
+      ✅ Docker services started!
+
+      🔗 Service URLs (via Tailscale from Windows):
+      - Letta: http://juis-mac-mini:{{ letta_port }}
+      - Qdrant: http://juis-mac-mini:{{ qdrant_port }}
+      - n8n: http://juis-mac-mini:{{ n8n_port }}
+      - Gateway: http://juis-mac-mini:{{ gateway_port }} (Phase 2)
+
+      💡 Test from Mac Mini:
+      - curl http://localhost:{{ letta_port }}/v1/health
+      - docker compose ps (in {{ docker_compose_path }})

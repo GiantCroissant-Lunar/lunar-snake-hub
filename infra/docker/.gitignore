@@ -1,0 +1,8 @@
+# Never commit unencrypted secrets
+.env
+
+# Docker runtime data
+data/
+
+# Logs
+*.log

@@ -1,0 +1,63 @@
+- name: Create SOPS age key directory
+  file:
+    path: '{{ sops_age_key_dir }}'
+    state: directory
+    mode: '0700'
+
+- name: Check if age key already exists
+  stat:
+    path: '{{ sops_age_key_file }}'
+  register: age_key_stat
+
+- name: Generate age key if not exists
+  shell: age-keygen -o "{{ sops_age_key_file }}"
+  when: not age_key_stat.stat.exists
+
+- name: Set age key file permissions
+  file:
+    path: '{{ sops_age_key_file }}'
+    mode: '0600'
+
+- name: Read age public key
+  shell: grep "^# public key:" "{{ sops_age_key_file }}" | awk '{print $NF}'
+  register: age_public_key
+  changed_when: false
+
+- name: Display age public key
+  debug:
+    msg: |
+      ✅ age key setup complete!
+
+      📋 Your age public key (for .sops.yaml):
+      {{ age_public_key.stdout }}
+
+      🔐 Private key location:
+      {{ sops_age_key_file }}
+
+      ⚠️  IMPORTANT: Add the PRIVATE key as a GitHub secret:
+      1. Copy the ENTIRE contents of {{ sops_age_key_file }}
+      2. Go to: https://github.com/{{ github_org }}/{{ hub_repo_name }}/settings/secrets/actions
+      3. Create a new secret named: SOPS_AGE_KEY
+      4. Paste the entire key file contents (including "# created:" and "# public key:" lines)
+
+- name: Create .sops.yaml configuration
+  template:
+    src: sops.yaml.j2
+    dest: '{{ hub_repo_path }}/.sops.yaml'
+    mode: '0644'
+  when: age_public_key.stdout | length > 0
+
+- name: Set SOPS_AGE_KEY_FILE environment variable
+  lineinfile:
+    path: '{{ ansible_env.HOME }}/.zshrc'
+    line: export SOPS_AGE_KEY_FILE="{{ sops_age_key_file }}"
+    create: yes
+    state: present
+
+- name: Set SOPS_AGE_KEY_FILE in bash profile (if exists)
+  lineinfile:
+    path: '{{ ansible_env.HOME }}/.bash_profile'
+    line: export SOPS_AGE_KEY_FILE="{{ sops_age_key_file }}"
+    create: yes
+    state: present
+  when: ansible_env.SHELL is search("bash")

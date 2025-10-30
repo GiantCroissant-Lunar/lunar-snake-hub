@@ -1,0 +1,10 @@
+creation_rules:
+  # Encrypt all files matching secrets/*.enc.* pattern
+  - path_regex: infra/secrets/.*\.enc\..*$
+    age: >-
+      {{ age_public_key.stdout }}
+
+  # Encrypt environment files
+  - path_regex: infra/docker/\.env\.enc$
+    age: >-
+      {{ age_public_key.stdout }}

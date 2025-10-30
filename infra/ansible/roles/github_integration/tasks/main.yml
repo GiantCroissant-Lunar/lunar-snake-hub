@@ -1,0 +1,50 @@
+- name: Check if GitHub CLI is authenticated
+  command: gh auth status
+  register: gh_auth_status
+  changed_when: false
+  failed_when: false
+
+- name: Display GitHub authentication status
+  debug:
+    msg: |
+      {% if gh_auth_status.rc == 0 %}
+      ✅ GitHub CLI is authenticated
+      {% else %}
+      ⚠️  GitHub CLI not authenticated
+
+      Please run on Mac Mini:
+      gh auth login --web
+
+      This is needed for:
+      - Opening PRs for version bumps
+      - Fetching runner registration tokens
+      - Interacting with GitHub API
+      {% endif %}
+
+- name: Ensure repo directory exists
+  file:
+    path: '{{ hub_repo_path }}'
+    state: directory
+    mode: '0755'
+
+- name: Check if hub repo is cloned
+  stat:
+    path: '{{ hub_repo_path }}/.git'
+  register: hub_git_stat
+
+- name: Clone hub repository if not exists
+  git:
+    repo: https://github.com/{{ github_org }}/{{ hub_repo_name }}.git
+    dest: '{{ hub_repo_path }}'
+    version: main
+  when: not hub_git_stat.stat.exists
+
+- name: Display repository status
+  debug:
+    msg: |
+      ✅ Repository: {{ hub_repo_path }}
+
+      📝 Next steps:
+      1. Commit and push the infrastructure files from Windows
+      2. On Mac Mini, run: git pull
+      3. Run the Ansible playbook to set up services

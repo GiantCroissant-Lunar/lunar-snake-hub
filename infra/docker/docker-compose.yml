@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # Phase 1: Letta (Agent Memory)
+  letta:
+    image: ghcr.io/letta-ai/letta:latest
+    container_name: lunar-letta
+    environment:
+      # GLM-4.6 API configuration
+    - OPENAI_API_KEY=${OPENAI_API_KEY}
+    - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
+      # Letta configuration
+    - LETTA_DB_URL=sqlite:///data/letta.db
+    - LETTA_SERVER_PORT=5055
+    volumes:
+    - ./data/letta:/data
+    ports:
+    - 5055:5055
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5055/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Phase 2: Qdrant (Vector Database for RAG)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: lunar-qdrant
+    volumes:
+    - ./data/qdrant:/qdrant/storage
+    ports:
+    - 6333:6333      # REST API
+    - 6334:6334      # gRPC
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Phase 2: Context Gateway (Custom FastAPI service)
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: lunar-gateway
+    environment:
+    - OPENAI_API_KEY=${OPENAI_API_KEY}
+    - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
+    - QDRANT_URL=http://qdrant:6333
+    - LETTA_URL=http://letta:5055
+    - GATEWAY_TOKEN=${GATEWAY_TOKEN}
+    - PORT=5057
+    - CORS_ORIGIN=*
+    volumes:
+    - ~/repos:/repos    # Access to git clones for indexing
+    - ./data/gateway:/data
+    depends_on:
+    - qdrant
+    - letta
+    ports:
+    - 5057:5057
+    restart: unless-stopped
+
+  # Phase 3: n8n (Workflow Automation)
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: lunar-n8n
+    environment:
+    - N8N_HOST=localhost
+    - N8N_PORT=5678
+    - N8N_PROTOCOL=http
+    - N8N_BASIC_AUTH_ACTIVE=true
+    - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+    - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme}
+    - WEBHOOK_URL=http://juis-mac-mini:5678/
+    ports:
+    - 5678:5678
+    volumes:
+    - ./data/n8n:/home/node/.n8n
+    restart: unless-stopped
+
+networks:
+  default:
+    name: lunar-snake-hub

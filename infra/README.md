@@ -13,83 +13,201 @@ source:
   model: sonnet-4.5
 ---
 
-# Infrastructure & Secrets
+# 🏗️ lunar-snake-hub Infrastructure
 
-Infrastructure templates and encrypted secrets for hub services.
+Automated setup for Mac Mini infrastructure using Ansible, Docker, and SOPS.
 
-## Secrets (SOPS)
+## 📋 Overview
 
-Secrets are encrypted with [SOPS](https://github.com/mozilla/sops) and stored here.
+This infrastructure supports the lunar-snake-hub architecture with:
 
-### Setup
+- **Letta**: Agent memory persistence (Phase 1)
+- **Qdrant**: Vector database for RAG (Phase 2)
+- **n8n**: Workflow automation (Phase 3)
+- **Context Gateway**: HTTP API for agents (Phase 2)
 
-**1. Generate Age key (one-time):**
+## 🚀 Quick Start
+
+### Windows (Setup & Deploy)
+
+```powershell
+# 1. Install prerequisites
+winget install Mozilla.Sops FiloSottile.age
+
+# 2. Generate age encryption key
+cd infra\secrets
+.\generate-age-key.ps1
+
+# 3. Create and encrypt environment file
+cp ..\docker\.env.template ..\docker\.env
+# Edit ..\docker\.env with your GLM-4.6 API key
+.\encrypt-env.ps1
+
+# 4. Commit and push encrypted config
+git add ..\docker\.env.enc ..\.sops.yaml
+git commit -m "Add encrypted infrastructure configuration"
+git push origin main
+```
+
+### Mac Mini (First Time Setup)
+
 ```bash
-age-keygen -o ~/.config/sops/age/keys.txt
-# Save the public key for .sops.yaml
+# 1. Clone the repository
+cd ~/repos
+git clone https://github.com/GiantCroissant-Lunar/lunar-snake-hub.git
+cd lunar-snake-hub
+
+# 2. Copy your age key from Windows to Mac
+mkdir -p ~/.config/sops/age
+# Paste the key contents into ~/.config/sops/age/keys.txt
+chmod 600 ~/.config/sops/age/keys.txt
+
+# 3. Run Ansible playbook (installs everything)
+cd infra/ansible
+ansible-playbook -i inventory/hosts.yml playbook.yml
+
+# This installs: Docker, SOPS, age, gh, yq, task, etc.
+# Configures: SOPS keys, Docker services, GitHub auth
+# Starts: Letta, Qdrant, n8n containers
 ```
 
-**2. Create `.sops.yaml`:**
-```yaml
-creation_rules:
-  - path_regex: secrets/.*\.enc\.yaml$
-    age: age1your_public_key_here
+See detailed setup guides:
+
+- [Secrets Management](secrets/README.md) - SOPS and age configuration
+- [Ansible Automation](ansible/README.md) - Playbook details
+
+## 📁 Directory Structure
+
+```
+infra/
+├── ansible/                    # Ansible automation
+│   ├── playbook.yml           # Main playbook
+│   ├── inventory/hosts.yml    # Mac Mini configuration
+│   ├── vars/config.yml        # Variables
+│   └── roles/
+│       ├── homebrew_packages/ # Install packages via brew
+│       ├── sops_setup/        # Configure SOPS/age keys
+│       ├── docker_services/   # Docker Compose management
+│       └── github_integration/# GitHub CLI setup
+│
+├── docker/                    # Docker Compose setup
+│   ├── docker-compose.yml     # All services (Letta, Qdrant, n8n)
+│   ├── .env.template          # Template for secrets
+│   ├── .env.enc               # Encrypted secrets (in git) ✅
+│   ├── .env                   # Decrypted (gitignored) ❌
+│   └── data/                  # Docker volumes (gitignored)
+│
+└── secrets/                   # SOPS key management
+    ├── README.md              # Comprehensive secrets guide
+    ├── generate-age-key.ps1   # Generate encryption keys (Windows)
+    ├── encrypt-env.ps1        # Encrypt .env (Windows)
+    └── decrypt-env.ps1        # Decrypt .env (Windows)
 ```
 
-**3. Create & encrypt secrets:**
+## 🔧 Services
+
+| Service | Port | URL (Tailscale) | Purpose | Phase |
+|---------|------|-----------------|---------|-------|
+| **Letta** | 5055 | <http://juis-mac-mini:5055> | Agent memory | 1 |
+| **Qdrant** | 6333 | <http://juis-mac-mini:6333> | Vector DB | 2 |
+| **Gateway** | 5057 | <http://juis-mac-mini:5057> | HTTP API | 2 |
+| **n8n** | 5678 | <http://juis-mac-mini:5678> | Automation | 3 |
+
+**Health Checks:**
+
 ```bash
-# Create plaintext
-cat > secrets/mac-mini.yaml <<EOF
-OPENAI_API_KEY=your_glm_api_key
-OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
-GATEWAY_TOKEN=your_random_token
-EOF
+# On Mac Mini
+curl http://localhost:5055/v1/health  # Letta
+curl http://localhost:6333/healthz    # Qdrant
 
-# Encrypt
-sops encrypt secrets/mac-mini.yaml > secrets/mac-mini.enc.yaml
-
-# Delete plaintext
-rm secrets/mac-mini.yaml
-
-# Commit encrypted
-git add secrets/mac-mini.enc.yaml
+# From Windows (via Tailscale)
+curl http://juis-mac-mini:5055/v1/health
 ```
 
-**4. Decrypt on Mac Mini:**
+## 🔐 Secrets Management
+
+All secrets encrypted using SOPS + age. See [secrets/README.md](secrets/README.md) for details.
+
+**Quick Reference:**
+
+```powershell
+# Windows: Generate key (first time)
+cd infra\secrets
+.\generate-age-key.ps1
+
+# Windows: Encrypt secrets
+.\encrypt-env.ps1
+
+# Mac: Decrypt secrets
+export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
+sops decrypt infra/docker/.env.enc > infra/docker/.env
+```
+
+**Key Locations:**
+
+- Windows: `%USERPROFILE%\.config\sops\age\keys.txt`
+- Mac: `~/.config/sops/age/keys.txt`
+- GitHub Secret: `SOPS_AGE_KEY` (for CI/CD)
+
+## 🧪 Testing
+
 ```bash
-# Direct to .env
-sops decrypt infra/secrets/mac-mini.enc.yaml > ~/ctx-hub/.env
+# Verify Ansible setup
+cd infra/ansible
+ansible-playbook -i inventory/hosts.yml playbook.yml --check
 
-# Or exec directly
-sops exec-env infra/secrets/mac-mini.enc.yaml 'docker compose up -d'
+# Check Docker services
+cd ../docker
+docker compose ps
+docker compose logs -f letta
+
+# Test from Windows
+curl http://juis-mac-mini:5055/v1/health
 ```
 
-## Mac Mini Services
+## 📊 Phase Rollout
 
-See `docs/architecture/YOUR_DECISIONS_SUMMARY.md` for full setup.
+### ✅ Phase 1: Memory (Current)
 
-**Services:**
-- **Letta** (port 5055) - Agent memory
-- **Qdrant** (port 6333) - Vector database
-- **Context Gateway** (port 5057) - HTTP API
-- **n8n** (port 5678) - Workflow orchestration
+- **Services:** Letta
+- **Goal:** Persistent agent memory
+- **Status:** Ready to deploy
 
-**docker-compose.yml** (example - add in Phase 1, Task #6):
-```yaml
-services:
-  letta:
-    image: ghcr.io/letta-ai/letta:latest
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
-    ports: ["5055:5055"]
-    volumes: ["./data:/data"]
+### 🔄 Phase 2: Context (Next)
+
+- **Services:** Letta + Qdrant + Gateway
+- **Goal:** RAG-based context retrieval
+- **Status:** Infrastructure ready, Gateway code needed
+
+### 🔄 Phase 3: Automation (Later)
+
+- **Services:** All Phase 2 + n8n
+- **Goal:** Auto-reindex on push, scheduled sync
+- **Status:** n8n container ready, workflows needed
+
+## 🆘 Troubleshooting
+
+See comprehensive troubleshooting in [main README](README.md#troubleshooting).
+
+**Common Issues:**
+
+```bash
+# Can't decrypt: Set environment variable
+export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
+
+# Services won't start: Check ports
+lsof -i :5055  # Should be free
+
+# Can't access from Windows: Check Tailscale
+tailscale status
+ping juis-mac-mini
 ```
 
-## Next Steps
+## 📚 Next Steps
 
-- Phase 1: Create `.sops.yaml` and encrypt Mac Mini secrets
-- Phase 1: Set up Letta on Mac Mini (Task #6)
-- Phase 2: Add Qdrant, Gateway services
+1. **Windows:** Generate age key and encrypt .env → `infra/secrets/`
+2. **Mac Mini:** Run Ansible playbook → `infra/ansible/`
+3. **Test:** Access Letta from Windows via Tailscale
+4. **Configure:** Add Letta as MCP tool in VS Code
 
-See: `docs/guides/PHASE1_CHECKLIST.md` (Task #6)
+See: [SESSION_HANDOVER_2025-10-30.md](../SESSION_HANDOVER_2025-10-30.md) Task #6-8

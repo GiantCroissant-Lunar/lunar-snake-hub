@@ -1,0 +1,49 @@
+# Configuration for lunar-snake-hub infrastructure
+
+# Repository configuration
+hub_repo_name: lunar-snake-hub
+hub_repo_path: '{{ ansible_env.HOME }}/repos/{{ hub_repo_name }}'
+github_org: GiantCroissant-Lunar
+
+# Docker services configuration
+docker_compose_path: '{{ hub_repo_path }}/infra/docker'
+docker_data_path: '{{ docker_compose_path }}/data'
+
+# Service ports
+letta_port: 5055
+qdrant_port: 6333
+qdrant_grpc_port: 6334
+n8n_port: 5678
+gateway_port: 5057
+
+# SOPS/age configuration
+sops_age_key_dir: '{{ ansible_env.HOME }}/.config/sops/age'
+sops_age_key_file: '{{ sops_age_key_dir }}/keys.txt'
+
+# Homebrew packages
+homebrew_packages:
+  # Core tools
+- docker
+- docker-compose
+- sops
+- age
+- gh    # GitHub CLI
+- yq    # YAML/TOML processor
+- dasel    # Data selector (alternative to yq)
+- jq    # JSON processor
+
+  # Development tools
+- git
+- gnu-tar
+- wget
+- curl
+
+  # Task runner (you prefer this over make)
+- go-task
+
+# Direct download packages (not in homebrew or need specific version)
+direct_downloads: []
+  # Add if needed:
+  # - name: custom-tool
+  #   url: https://example.com/tool.tar.gz
+  #   dest: /usr/local/bin/custom-tool
