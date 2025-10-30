@@ -45,11 +45,13 @@ precommit/
 ### 1. Universal vs. Project-Specific
 
 **Hub provides:**
+
 - ✅ Universal checks (gitleaks, agent pointers, prevent nul files)
 - ✅ Example hooks (pre-commit, commit-msg, pre-push)
 - ✅ Shared utilities (common.sh)
 
 **Satellites add:**
+
 - 🔧 Language-specific checks (.NET, Python, Go, Rust, etc.)
 - 🔧 Project-specific validations
 - 🔧 Custom business logic checks
@@ -59,18 +61,21 @@ precommit/
 ### 2. Separation of Concerns
 
 **hooks/** - Git hook entry points
+
 - Orchestrate multiple checks
 - Handle error aggregation
 - Provide user-friendly output
 - Should be thin wrappers
 
 **checks/** - Individual check implementations
+
 - Single responsibility
 - Independently testable
 - Reusable across hooks
 - Clear success/failure semantics
 
 **utils/** - Shared code
+
 - Avoid duplication
 - Consistent output formatting
 - Color coding for terminals
@@ -79,11 +84,13 @@ precommit/
 ### 3. Discoverability
 
 **Clear naming:**
+
 - `gitleaks-check` (not `check-secrets` or `secrets`)
 - `validate_agent_pointers.py` (describes what it validates)
 - `prevent_nul_file.py` (describes what it prevents)
 
 **Categorization:**
+
 - `checks/general/` - Works for any project
 - `checks/dotnet/` (satellite-only) - .NET specific
 - `checks/python/` (satellite-only) - Python specific
@@ -91,6 +98,7 @@ precommit/
 ### 4. Composability
 
 Hooks can be used:
+
 1. **Via pre-commit framework** (recommended) - `.pre-commit-config.yaml`
 2. **Directly in .git/hooks/** - Copy hooks/ to .git/hooks/
 3. **Via task runner** - `task pre-commit:run`
@@ -110,11 +118,13 @@ chmod +x precommit/checks/**/*
 ### Shebang Lines
 
 **Bash scripts:**
+
 ```bash
 #!/bin/bash
 ```
 
 **Python scripts:**
+
 ```python
 #!/usr/bin/env python3
 ```
@@ -122,6 +132,7 @@ chmod +x precommit/checks/**/*
 ### Dependencies
 
 **Document all dependencies:**
+
 - In README.md prerequisites section
 - At top of script as comments
 - With installation instructions
@@ -129,6 +140,7 @@ chmod +x precommit/checks/**/*
 ### Self-Contained
 
 Each check should:
+
 - Run independently
 - Not depend on other checks
 - Exit with 0 (success) or 1 (failure)
@@ -146,6 +158,7 @@ pre-commit install
 ```
 
 **Benefits:**
+
 - Automatic updates when hub syncs
 - Language-specific virtual environments
 - Parallel execution
@@ -161,6 +174,7 @@ cp .hub-cache/precommit/hooks/* .git/hooks/
 ```
 
 **Benefits:**
+
 - No external dependencies
 - Faster execution (no framework overhead)
 - Full control over hook behavior
@@ -198,6 +212,7 @@ To add a check to the hub's `checks/general/`, it must be:
 ### Examples of Universal Checks
 
 ✅ **Good candidates:**
+
 - Secret detection (gitleaks)
 - File encoding validation
 - License header checks
@@ -206,6 +221,7 @@ To add a check to the hub's `checks/general/`, it must be:
 - Prevent accidental commits (TODO, console.log)
 
 ❌ **Not universal (satellite-specific):**
+
 - Language formatting (.NET, Python, Go)
 - Type checking (mypy, TypeScript)
 - Linting (ESLint, Ruff, golangci-lint)
