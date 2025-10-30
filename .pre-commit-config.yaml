@@ -1,0 +1,109 @@
+# Pre-commit hooks for lunar-snake-hub
+# Dogfooding: Hub uses its own pre-commit infrastructure
+
+repos:
+  # === Basic File Checks ===
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+  - id: trailing-whitespace
+    name: Remove trailing whitespace
+    args: [--markdown-linebreak-ext=md]
+  - id: end-of-file-fixer
+    name: Ensure files end with newline
+  - id: check-yaml
+    name: Validate YAML syntax
+  - id: check-json
+    name: Validate JSON syntax
+  - id: check-toml
+    name: Validate TOML syntax
+  - id: check-added-large-files
+    name: Prevent large files (>500KB)
+    args: [--maxkb=500]
+  - id: check-merge-conflict
+    name: Detect merge conflict markers
+  - id: detect-private-key
+    name: Prevent committing private keys
+  - id: check-case-conflict
+    name: Check for case-sensitive filename conflicts
+  - id: mixed-line-ending
+    name: Check for mixed line endings
+    args: [--fix=lf]
+
+  # === Markdown Linting ===
+- repo: https://github.com/igorshubovych/markdownlint-cli
+  rev: v0.38.0
+  hooks:
+  - id: markdownlint
+    name: Lint Markdown files
+    args: [--fix]
+    exclude: ^(\.hub-cache/|node_modules/)
+
+  # === YAML Formatting ===
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.12.0
+  hooks:
+  - id: pretty-format-yaml
+    name: Format YAML files
+    args: [--autofix, --indent, '2']
+    exclude: ^(\.hub-cache/|Taskfile\.yml$|\.markdownlintrc$)
+
+  # === Python (if we add Python scripts) ===
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.1.9
+  hooks:
+  - id: ruff
+    name: Lint Python with Ruff
+    args: [--fix, --exit-non-zero-on-fix]
+  - id: ruff-format
+    name: Format Python with Ruff
+
+  # === Security Checks ===
+- repo: https://github.com/Yelp/detect-secrets
+  rev: v1.4.0
+  hooks:
+  - id: detect-secrets
+    name: Detect secrets in code
+    args: [--baseline, .secrets.baseline]
+    exclude: ^(\.sops\.yaml|infra/secrets/.*\.enc\.yaml)$
+
+  # === Conventional Commits ===
+- repo: https://github.com/compilerla/conventional-pre-commit
+  rev: v3.0.0
+  hooks:
+  - id: conventional-pre-commit
+    name: Validate conventional commit message
+    stages: [commit-msg]
+    args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+
+  # === Custom Hooks (local) ===
+- repo: local
+  hooks:
+  - id: validate-hub-structure
+    name: Validate hub repository structure
+    entry: bash -c 'task validate:structure || exit 0'
+    language: system
+    pass_filenames: false
+    stages: [pre-push]
+
+# === Configuration ===
+default_language_version:
+  python: python3
+
+# Exclude patterns (global)
+exclude: |
+  (?x)^(
+    \.hub-cache/.*|
+    \.git/.*|
+    node_modules/.*|
+    \.venv/.*|
+    venv/.*|
+    .*\.min\.(js|css)$
+  )$
+
+# CI configuration
+ci:
+  autofix_commit_msg: 'style: auto-fix pre-commit hooks'
+  autofix_prs: true
+  autoupdate_commit_msg: 'chore: update pre-commit hooks'
+  autoupdate_schedule: weekly

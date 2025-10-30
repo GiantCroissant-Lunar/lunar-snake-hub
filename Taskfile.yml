@@ -1,0 +1,281 @@
+version: '3'
+
+# lunar-snake-hub Taskfile
+# Dogfooding: Hub uses its own infrastructure
+
+vars:
+  HUB_CACHE: .hub-cache
+  HUB_REPO: https://github.com/GiantCroissant-Lunar/lunar-snake-hub
+  AGENT_SYMLINK: .agent
+
+tasks:
+  # === Hub Sync Tasks (Dogfooding) ===
+
+  hub:sync:
+    desc: Sync from hub (dogfooding test - syncs from self)
+    cmds:
+    - task: hub:clone
+    - task: hub:copy
+    - task: hub:symlink
+    - echo "✅ Hub sync complete (dogfooding mode)"
+
+  hub:clone:
+    desc: Clone or update hub repo in cache
+    internal: true
+    cmds:
+    - |
+      if [ ! -d {{.HUB_CACHE}}/hub-repo ]; then
+        echo "📦 Cloning hub repo..."
+        git clone {{.HUB_REPO}} {{.HUB_CACHE}}/hub-repo
+      else
+        echo "🔄 Updating hub repo..."
+        git -C {{.HUB_CACHE}}/hub-repo pull
+      fi
+    status:
+    - test -d {{.HUB_CACHE}}/hub-repo/.git
+
+  hub:copy:
+    desc: Copy hub assets to cache
+    internal: true
+    deps: [hub:clone]
+    cmds:
+    - mkdir -p {{.HUB_CACHE}}
+    - cp -r {{.HUB_CACHE}}/hub-repo/agents {{.HUB_CACHE}}/
+    - cp -r {{.HUB_CACHE}}/hub-repo/precommit {{.HUB_CACHE}}/
+    - echo "✅ Copied agents ({{.HUB_CACHE}}/agents/)"
+    - echo "✅ Copied precommit ({{.HUB_CACHE}}/precommit/)"
+
+  hub:symlink:
+    desc: Create .agent symlink to agents/
+    internal: true
+    cmds:
+    - |
+      if [ -L {{.AGENT_SYMLINK}} ] || [ -e {{.AGENT_SYMLINK}} ]; then
+        echo "ℹ️  {{.AGENT_SYMLINK}} already exists, skipping"
+      else
+        echo "🔗 Creating {{.AGENT_SYMLINK}} -> agents/"
+        # Try Unix symlink first, fall back to Windows junction
+        ln -s agents {{.AGENT_SYMLINK}} 2>/dev/null || \
+          cmd /c "mklink /J {{.AGENT_SYMLINK}} agents" || \
+          echo "⚠️  Failed to create symlink, agents/ still accessible"
+      fi
+
+  hub:check:
+    desc: Verify hub cache is up to date
+    cmds:
+    - |
+      echo "📊 Hub Cache Status:"
+      if [ -d {{.HUB_CACHE}}/agents ]; then
+        AGENT_COUNT=$(find {{.HUB_CACHE}}/agents -type f -name "*.md" | wc -l)
+        echo "  ✅ Agents: $AGENT_COUNT files"
+      else
+        echo "  ❌ Agents: Not synced"
+      fi
+      if [ -d {{.HUB_CACHE}}/precommit ]; then
+        echo "  ✅ Precommit: synced"
+      else
+        echo "  ❌ Precommit: Not synced"
+      fi
+      if [ -L {{.AGENT_SYMLINK}} ]; then
+        echo "  ✅ Symlink: {{.AGENT_SYMLINK}} -> agents/"
+      else
+        echo "  ⚠️  Symlink: Not created"
+      fi
+
+  hub:clean:
+    desc: Clean hub cache
+    cmds:
+    - rm -rf {{.HUB_CACHE}}
+    - echo "✅ Hub cache cleaned"
+
+  # === Pre-commit Tasks ===
+
+  pre-commit:install:
+    desc: Install pre-commit hooks
+    cmds:
+    - pre-commit install
+    - pre-commit install --hook-type commit-msg
+    - echo "✅ Pre-commit hooks installed"
+
+  pre-commit:run:
+    desc: Run pre-commit checks on all files
+    cmds:
+    - pre-commit run --all-files
+
+  pre-commit:update:
+    desc: Update pre-commit hooks to latest versions
+    cmds:
+    - pre-commit autoupdate
+    - echo "✅ Pre-commit hooks updated"
+
+  # === Validation Tasks ===
+
+  validate:structure:
+    desc: Validate hub repository structure
+    cmds:
+    - |
+      echo "🔍 Validating hub structure..."
+      ERRORS=0
+
+      # Check required directories
+      for dir in agents docs nuke precommit specs infra; do
+        if [ ! -d "$dir" ]; then
+          echo "  ❌ Missing directory: $dir"
+          ERRORS=$((ERRORS + 1))
+        else
+          echo "  ✅ Directory exists: $dir"
+        fi
+      done
+
+      # Check required files
+      for file in README.md .gitignore .hub-manifest.toml Taskfile.yml; do
+        if [ ! -f "$file" ]; then
+          echo "  ❌ Missing file: $file"
+          ERRORS=$((ERRORS + 1))
+        else
+          echo "  ✅ File exists: $file"
+        fi
+      done
+
+      # Check agent rules
+      RULE_COUNT=$(find agents/rules -name "*.md" 2>/dev/null | wc -l)
+      echo "  📋 Agent rules: $RULE_COUNT files"
+
+      if [ $ERRORS -gt 0 ]; then
+        echo ""
+        echo "❌ Validation failed with $ERRORS error(s)"
+        exit 1
+      else
+        echo ""
+        echo "✅ Hub structure valid"
+      fi
+
+  validate:agents:
+    desc: Validate agent rule files
+    cmds:
+    - |
+      echo "🔍 Validating agent rules..."
+      ERRORS=0
+
+      # Check for required agent files
+      REQUIRED_RULES="00-index.md 10-principles.md 20-rules.md 30-glossary.md"
+      for rule in $REQUIRED_RULES; do
+        if [ ! -f "agents/rules/$rule" ]; then
+          echo "  ❌ Missing required rule: agents/rules/$rule"
+          ERRORS=$((ERRORS + 1))
+        else
+          echo "  ✅ Rule exists: $rule"
+        fi
+      done
+
+      # Check for README files
+      if [ ! -f "agents/README.md" ]; then
+        echo "  ❌ Missing agents/README.md"
+        ERRORS=$((ERRORS + 1))
+      else
+        echo "  ✅ agents/README.md exists"
+      fi
+
+      if [ $ERRORS -gt 0 ]; then
+        echo ""
+        echo "❌ Agent validation failed with $ERRORS error(s)"
+        exit 1
+      else
+        echo ""
+        echo "✅ Agent rules valid"
+      fi
+
+  validate:all:
+    desc: Run all validation checks
+    cmds:
+    - task: validate:structure
+    - task: validate:agents
+    - echo ""
+    - echo "✅ All validations passed"
+
+  # === Lint Tasks ===
+
+  lint:markdown:
+    desc: Lint markdown files
+    cmds:
+    - |
+      if command -v markdownlint &> /dev/null; then
+        markdownlint "**/*.md" --ignore node_modules --ignore .hub-cache
+      else
+        echo "⚠️  markdownlint not installed, skipping"
+        echo "   Install: npm install -g markdownlint-cli"
+      fi
+
+  lint:yaml:
+    desc: Lint YAML files
+    cmds:
+    - |
+      if command -v yamllint &> /dev/null; then
+        yamllint .
+      else
+        echo "⚠️  yamllint not installed, skipping"
+        echo "   Install: pip install yamllint"
+      fi
+
+  lint:all:
+    desc: Run all linting checks
+    cmds:
+    - task: lint:markdown
+    - task: lint:yaml
+
+  # === Test Tasks ===
+
+  test:sync:
+    desc: Test hub sync mechanism
+    cmds:
+    - echo "🧪 Testing hub sync..."
+    - task: hub:clean
+    - task: hub:sync
+    - task: hub:check
+    - echo "✅ Sync test passed"
+
+  test:all:
+    desc: Run all tests
+    cmds:
+    - task: test:sync
+    - task: validate:all
+    - echo "✅ All tests passed"
+
+  # === CI Tasks ===
+
+  ci:
+    desc: Run CI checks (used in GitHub Actions)
+    cmds:
+    - task: validate:all
+    - task: lint:all
+    - task: test:sync
+    - echo "✅ CI checks passed"
+
+  # === Info Tasks ===
+
+  info:
+    desc: Show hub information
+    cmds:
+    - |
+      echo "🐍 lunar-snake-hub"
+      echo "=================="
+      echo ""
+      echo "Version: 0.1.0"
+      echo "Repo: {{.HUB_REPO}}"
+      echo ""
+      echo "📁 Structure:"
+      echo "  - agents/     (agent rules & prompts)"
+      echo "  - nuke/       (build components)"
+      echo "  - precommit/  (pre-commit hooks)"
+      echo "  - specs/      (specifications & RFCs)"
+      echo "  - docs/       (documentation)"
+      echo ""
+      echo "🚀 Available tasks:"
+      task --list
+
+  # === Default Task ===
+
+  default:
+    desc: Show available tasks
+    cmds:
+    - task: info

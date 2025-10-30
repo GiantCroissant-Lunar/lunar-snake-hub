@@ -1,0 +1,22 @@
+# Hub Self-Reference Manifest
+# The hub dogfoods its own infrastructure
+
+[hub]
+repo = "GiantCroissant-Lunar/lunar-snake-hub"
+branch = "main"
+
+[packs]
+# Self-reference: hub uses its own packs
+agents = "0.1.0"
+precommit = "0.1.0"
+# Note: nuke pack is for satellites only (hub doesn't use NUKE)
+
+[config]
+# Hub-specific configuration
+cache_dir = ".hub-cache"
+symlink_agents = true  # Create .agent -> agents/ symlink
+
+[metadata]
+version = "0.1.0"
+last_updated = "2025-10-30"
+description = "Hub dogfooding configuration"

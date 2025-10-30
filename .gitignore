@@ -38,3 +38,8 @@ Thumbs.db
 *.tmp
 *.bak
 .cache/
+
+# Hub-specific (dogfooding)
+.hub-cache/
+.agent
+.agent/  # Junction/symlink to agents/
