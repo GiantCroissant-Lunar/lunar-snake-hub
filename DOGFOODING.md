@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00003
+title: Dogfooding in lunar-snake-hub
+doc_type: guide
+status: active
+canonical: true
+created: 2025-10-30
+tags: [dogfooding, infrastructure, best-practices, self-reference]
+summary: Guide to dogfooding in lunar-snake-hub - how the hub uses its own infrastructure to ensure quality and prove it works
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Dogfooding in lunar-snake-hub
 
 **Status:** ✅ Implemented

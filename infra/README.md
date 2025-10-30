@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00018
+title: Infrastructure & Secrets Directory
+doc_type: reference
+status: active
+canonical: true
+created: 2025-10-30
+tags: [infrastructure, secrets, sops, docker, reference]
+summary: Directory reference for infrastructure templates and SOPS-encrypted secrets for hub services
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Infrastructure & Secrets
 
 Infrastructure templates and encrypted secrets for hub services.

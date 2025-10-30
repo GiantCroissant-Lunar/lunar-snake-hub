@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00001
+title: lunar-snake-hub
+doc_type: reference
+status: active
+canonical: true
+created: 2025-10-30
+tags: [hub, overview, reference, infrastructure]
+summary: Central hub for lunar-snake projects - single source of truth for specs, agent rules, build components, and shared infrastructure
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # lunar-snake-hub
 
 **Central hub for lunar-snake projects** - Single source of truth for specs, agent rules, build components, and shared infrastructure.

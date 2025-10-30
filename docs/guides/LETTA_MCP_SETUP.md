@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00012
+title: Letta MCP Tool Configuration Guide
+doc_type: guide
+status: active
+canonical: true
+created: 2025-10-30
+tags: [letta, mcp, setup, vscode, phase1]
+summary: Guide for configuring Letta as an MCP (Model Context Protocol) tool in VS Code for Phase 1
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Letta MCP Tool Configuration Guide
 
 This guide explains how to configure Letta as an MCP (Model Context Protocol) tool in VS Code for Phase 1.

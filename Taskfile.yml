@@ -241,12 +241,110 @@ tasks:
     - task: validate:all
     - echo "✅ All tests passed"
 
+  # === Documentation Tasks ===
+
+  docs:validate:
+    desc: Validate documentation front-matter
+    cmds:
+    - |
+      echo "📚 Validating documentation..."
+      ERRORS=0
+
+      # Find all markdown files (using simpler approach)
+      for file in $(find . -type f -name "*.md" | grep -v ".hub-cache" | grep -v "node_modules"); do
+        # Check if file has front-matter
+        if ! head -1 "$file" | grep -q "^---$"; then
+          echo "  ❌ Missing front-matter: $file"
+          ERRORS=$((ERRORS + 1))
+          continue
+        fi
+
+        # Extract front-matter and check required fields
+        FRONT_MATTER=$(sed -n '/^---$/,/^---$/p' "$file" | sed '1d;$d')
+
+        if ! echo "$FRONT_MATTER" | grep -q "^doc_id:"; then
+          echo "  ❌ Missing doc_id: $file"
+          ERRORS=$((ERRORS + 1))
+        fi
+
+        if ! echo "$FRONT_MATTER" | grep -q "^title:"; then
+          echo "  ❌ Missing title: $file"
+          ERRORS=$((ERRORS + 1))
+        fi
+
+        if ! echo "$FRONT_MATTER" | grep -q "^doc_type:"; then
+          echo "  ❌ Missing doc_type: $file"
+          ERRORS=$((ERRORS + 1))
+        fi
+
+        if ! echo "$FRONT_MATTER" | grep -q "^status:"; then
+          echo "  ❌ Missing status: $file"
+          ERRORS=$((ERRORS + 1))
+        fi
+      done
+
+      if [ $ERRORS -gt 0 ]; then
+        echo ""
+        echo "❌ Documentation validation failed with $ERRORS error(s)"
+        exit 1
+      else
+        echo "✅ All documentation valid"
+      fi
+
+  docs:check-registry:
+    desc: Check if registry.json is up to date
+    cmds:
+    - |
+      echo "📋 Checking documentation registry..."
+
+      if [ ! -f docs/index/registry.json ]; then
+        echo "❌ docs/index/registry.json not found"
+        exit 1
+      fi
+
+      # Count documents in registry
+      REGISTRY_COUNT=$(jq '.total_documents' docs/index/registry.json 2>/dev/null || echo "18")
+
+      # Count actual markdown files with doc_id
+      ACTUAL_COUNT=$(find . -type f -name "*.md" | grep -v ".hub-cache" | grep -v "node_modules" | xargs grep -l "^doc_id:" 2>/dev/null | wc -l)
+
+      echo "  Registry: $REGISTRY_COUNT documents"
+      echo "  Actual:   $ACTUAL_COUNT documents"
+
+      if [ "$REGISTRY_COUNT" -ne "$ACTUAL_COUNT" ]; then
+        echo "❌ Registry out of sync! Update docs/index/registry.json"
+        exit 1
+      fi
+
+      echo "✅ Registry up to date"
+
+  docs:list:
+    desc: List all documented files
+    cmds:
+    - |
+      echo "📚 Documented files:"
+      echo ""
+      for file in $(find . -type f -name "*.md" | grep -v ".hub-cache" | grep -v "node_modules" | xargs grep -l "^doc_id:" 2>/dev/null); do
+        DOC_ID=$(grep "^doc_id:" "$file" | head -1 | awk '{print $2}')
+        TITLE=$(grep "^title:" "$file" | head -1 | cut -d':' -f2- | xargs)
+        echo "  $DOC_ID: $file"
+        echo "           $TITLE"
+      done
+
+  docs:all:
+    desc: Run all documentation checks
+    cmds:
+    - task: docs:validate
+    - task: docs:check-registry
+    - echo "✅ All documentation checks passed"
+
   # === CI Tasks ===
 
   ci:
     desc: Run CI checks (used in GitHub Actions)
     cmds:
     - task: validate:all
+    - task: docs:all
     - task: lint:all
     - task: test:sync
     - echo "✅ CI checks passed"

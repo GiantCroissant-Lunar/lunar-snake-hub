@@ -1,3 +1,19 @@
+---
+doc_id: DOC-2025-00009
+title: Architecture Decisions Checklist
+doc_type: guide
+status: active
+canonical: true
+created: 2025-10-30
+tags: [architecture, decisions, checklist, planning]
+summary: Checklist for making architecture decisions before starting Phase 1 implementation
+related: [DOC-2025-00007, DOC-2025-00010]
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Architecture Decisions Checklist
 ## Make These Choices Before Phase 1
 

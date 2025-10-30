@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00016
+title: Agent Rules & Prompts Directory
+doc_type: reference
+status: active
+canonical: true
+created: 2025-10-30
+tags: [agents, rules, prompts, directory, reference]
+summary: Directory reference for agent rules, prompts, adapters, and scripts consumed by satellite repos
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Agent Rules & Prompts
 
 This directory contains all agent-related assets consumed by satellite repos.

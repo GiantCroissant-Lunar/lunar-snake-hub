@@ -1,3 +1,19 @@
+---
+doc_id: DOC-2025-00008
+title: Architecture Quick Reference
+doc_type: reference
+status: active
+canonical: true
+created: 2025-10-30
+tags: [architecture, quick-reference, commands, cheatsheet]
+summary: Quick reference guide for architecture implementation - command cheatsheets and TL;DR
+related: [DOC-2025-00007]
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Architecture Quick Reference
 ## TL;DR for Implementation
 

@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00007
+title: Multi-Project Development Architecture
+doc_type: spec
+status: active
+canonical: true
+created: 2025-10-30
+tags: [architecture, multi-project, context, memory, agent-centric]
+summary: Comprehensive architecture specification for context-aware, memory-persistent, agent-centric multi-project development system
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Multi-Project Development Architecture
 ## Context-Aware, Memory-Persistent, Agent-Centric System
 

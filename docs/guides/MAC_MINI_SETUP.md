@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00013
+title: Mac Mini Setup Guide for Phase 1
+doc_type: guide
+status: active
+canonical: true
+created: 2025-10-30
+tags: [mac-mini, letta, docker, setup, phase1]
+summary: Guide for setting up Letta on Mac Mini for Phase 1 of lunar-snake-hub project
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Mac Mini Setup Guide for Phase 1
 
 This guide walks through setting up Letta on the Mac Mini for Phase 1 of the lunar-snake-hub project.

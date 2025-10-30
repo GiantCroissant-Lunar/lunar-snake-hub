@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00006
+title: START HERE - Next Session Quick Guide
+doc_type: guide
+status: active
+canonical: true
+created: 2025-10-30
+tags: [quickstart, phase1, next-steps, session-guide]
+summary: Quick-start guide for resuming Phase 1 implementation - what to read and what to do next
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # 🚀 START HERE - Next Session Quick Guide
 
 **Phase 1 Status:** 62% Complete (5 of 8 tasks done)

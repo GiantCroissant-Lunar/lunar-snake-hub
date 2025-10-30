@@ -1,3 +1,19 @@
+---
+doc_id: DOC-2025-00014
+title: Phase 1 Implementation Checklist
+doc_type: guide
+status: active
+canonical: true
+created: 2025-10-30
+tags: [phase1, checklist, implementation, step-by-step]
+summary: Step-by-step implementation checklist for Phase 1 hub setup (4 hours target)
+related: [DOC-2025-00004, DOC-2025-00015]
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Phase 1 Implementation Checklist
 **Target:** 4 hours | **Pilot:** lablab-bean | **Hub:** lunar-snake-hub
 

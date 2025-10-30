@@ -1,0 +1,208 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2025-10-30T20:50:00Z",
+  "repository": "lunar-snake-hub",
+  "total_documents": 18,
+  "documents": [
+    {
+      "doc_id": "DOC-2025-00001",
+      "title": "lunar-snake-hub",
+      "path": "README.md",
+      "doc_type": "reference",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["hub", "overview", "reference", "infrastructure"]
+    },
+    {
+      "doc_id": "DOC-2025-00002",
+      "title": "Session Handover - Phase 1 Implementation",
+      "path": "HANDOVER.md",
+      "doc_type": "plan",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["phase1", "handover", "progress", "implementation"]
+    },
+    {
+      "doc_id": "DOC-2025-00003",
+      "title": "Dogfooding in lunar-snake-hub",
+      "path": "DOGFOODING.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["dogfooding", "infrastructure", "best-practices", "self-reference"]
+    },
+    {
+      "doc_id": "DOC-2025-00004",
+      "title": "Phase 1 Progress Report",
+      "path": "PHASE1_PROGRESS.md",
+      "doc_type": "plan",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["phase1", "progress", "tracking", "implementation"]
+    },
+    {
+      "doc_id": "DOC-2025-00005",
+      "title": "Next Steps - Push to GitHub & Start Phase 1",
+      "path": "SETUP_NEXT.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["setup", "github", "phase1", "getting-started"]
+    },
+    {
+      "doc_id": "DOC-2025-00006",
+      "title": "START HERE - Next Session Quick Guide",
+      "path": "START_HERE.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["quickstart", "phase1", "next-steps", "session-guide"]
+    },
+    {
+      "doc_id": "DOC-2025-00007",
+      "title": "Multi-Project Development Architecture",
+      "path": "docs/architecture/ARCHITECTURE_DISCUSSION.md",
+      "doc_type": "spec",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["architecture", "multi-project", "context", "memory", "agent-centric"]
+    },
+    {
+      "doc_id": "DOC-2025-00008",
+      "title": "Architecture Quick Reference",
+      "path": "docs/architecture/ARCHITECTURE_QUICK_REF.md",
+      "doc_type": "reference",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["architecture", "quick-reference", "commands", "cheatsheet"]
+    },
+    {
+      "doc_id": "DOC-2025-00009",
+      "title": "Architecture Decisions Checklist",
+      "path": "docs/architecture/ARCHITECTURE_DECISIONS_CHECKLIST.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["architecture", "decisions", "checklist", "planning"]
+    },
+    {
+      "doc_id": "DOC-2025-00010",
+      "title": "Your Architecture Decisions - Final Summary",
+      "path": "docs/architecture/YOUR_DECISIONS_SUMMARY.md",
+      "doc_type": "adr",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["architecture", "decisions", "adr", "phase1"]
+    },
+    {
+      "doc_id": "DOC-2025-00011",
+      "title": "Documentation Front-Matter Schema",
+      "path": "docs/guides/DOCUMENTATION-SCHEMA.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-20",
+      "tags": ["docs", "schema", "meta"]
+    },
+    {
+      "doc_id": "DOC-2025-00012",
+      "title": "Letta MCP Tool Configuration Guide",
+      "path": "docs/guides/LETTA_MCP_SETUP.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["letta", "mcp", "setup", "vscode", "phase1"]
+    },
+    {
+      "doc_id": "DOC-2025-00013",
+      "title": "Mac Mini Setup Guide for Phase 1",
+      "path": "docs/guides/MAC_MINI_SETUP.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["mac-mini", "letta", "docker", "setup", "phase1"]
+    },
+    {
+      "doc_id": "DOC-2025-00014",
+      "title": "Phase 1 Implementation Checklist",
+      "path": "docs/guides/PHASE1_CHECKLIST.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["phase1", "checklist", "implementation", "step-by-step"]
+    },
+    {
+      "doc_id": "DOC-2025-00015",
+      "title": "Phase 1 Test Suite",
+      "path": "docs/guides/PHASE1_TEST_SUITE.md",
+      "doc_type": "guide",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["phase1", "testing", "validation", "test-suite"]
+    },
+    {
+      "doc_id": "DOC-2025-00016",
+      "title": "Agent Rules & Prompts Directory",
+      "path": "agents/README.md",
+      "doc_type": "reference",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["agents", "rules", "prompts", "directory", "reference"]
+    },
+    {
+      "doc_id": "DOC-2025-00017",
+      "title": "Specifications & RFCs Directory",
+      "path": "specs/README.md",
+      "doc_type": "reference",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["specs", "rfcs", "api", "contracts", "directory", "reference"]
+    },
+    {
+      "doc_id": "DOC-2025-00018",
+      "title": "Infrastructure & Secrets Directory",
+      "path": "infra/README.md",
+      "doc_type": "reference",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["infrastructure", "secrets", "sops", "docker", "reference"]
+    }
+  ],
+  "stats": {
+    "by_type": {
+      "reference": 4,
+      "plan": 2,
+      "guide": 9,
+      "spec": 1,
+      "adr": 1,
+      "rfc": 0,
+      "finding": 0,
+      "glossary": 0
+    },
+    "by_status": {
+      "active": 18,
+      "draft": 0,
+      "superseded": 0,
+      "rejected": 0,
+      "archived": 0
+    }
+  },
+  "next_doc_id": "DOC-2025-00019"
+}

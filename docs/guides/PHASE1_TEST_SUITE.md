@@ -1,3 +1,19 @@
+---
+doc_id: DOC-2025-00015
+title: Phase 1 Test Suite
+doc_type: guide
+status: active
+canonical: true
+created: 2025-10-30
+tags: [phase1, testing, validation, test-suite]
+summary: Comprehensive test suite for validating Phase 1 implementation of lunar-snake-hub
+related: [DOC-2025-00004, DOC-2025-00014]
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Phase 1 Test Suite
 
 This comprehensive test suite validates the complete Phase 1 implementation of the lunar-snake-hub project.

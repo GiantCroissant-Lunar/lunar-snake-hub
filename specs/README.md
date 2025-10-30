@@ -1,3 +1,18 @@
+---
+doc_id: DOC-2025-00017
+title: Specifications & RFCs Directory
+doc_type: reference
+status: active
+canonical: true
+created: 2025-10-30
+tags: [specs, rfcs, api, contracts, directory, reference]
+summary: Directory reference for domain specifications, API contracts, and architecture decision records
+source:
+  author: agent
+  agent: claude
+  model: sonnet-4.5
+---
+
 # Specifications & RFCs
 
 Domain specifications, API contracts, and architecture decision records.
