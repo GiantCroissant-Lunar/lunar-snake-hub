@@ -89,12 +89,14 @@ def main() -> int:
                 chosen = br
                 break
         if chosen:
-            include.append({
-                "repo": r,
-                "branch": chosen,
-                "slug": slug,
-                "spec": spec_id_p,
-            })
+            include.append(
+                {
+                    "repo": r,
+                    "branch": chosen,
+                    "slug": slug,
+                    "spec": spec_id_p,
+                }
+            )
 
     print(json.dumps({"include": include}))
     return 0
@@ -102,4 +104,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

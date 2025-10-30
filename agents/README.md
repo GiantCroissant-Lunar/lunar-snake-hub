@@ -32,6 +32,7 @@ agents/
 **Format:** `R-{CATEGORY}-{NUMBER}-{description}.md`
 
 **Categories:**
+
 - `R-CODE-*` - Code style, naming, structure
 - `R-DOC-*` - Documentation standards
 - `R-NUKE-*` - Build rules
@@ -39,6 +40,7 @@ agents/
 - `R-TEST-*` - Testing standards
 
 **Examples:**
+
 - `R-CODE-010-naming-conventions.md`
 - `R-DOC-030-inline-comments.md`
 - `R-NUKE-001-common-targets.md`
@@ -46,6 +48,7 @@ agents/
 ## Next Steps (Phase 1)
 
 Extract agent rules from `lablab-bean/.agent/`:
+
 1. Copy `lablab-bean/.agent/base/` → `agents/rules/`
 2. Copy `lablab-bean/.agent/agents/` → `agents/prompts/`
 3. Copy `lablab-bean/.agent/adapters/` → `agents/adapters/`

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import json
-import os
 import re
 import subprocess
 import sys
@@ -32,9 +30,14 @@ def load_tasks(spec_dir: Path) -> List[Dict]:
 
 
 def select_tasks(tasks: List[Dict], repo: str, task_id: Optional[str]) -> List[Dict]:
-    filtered = [t for t in tasks if isinstance(t, dict) and (not t.get("repo") or t.get("repo") == repo)]
+    filtered = [
+        t
+        for t in tasks
+        if isinstance(t, dict) and (not t.get("repo") or t.get("repo") == repo)
+    ]
     if task_id:
         filtered = [t for t in filtered if str(t.get("id")) == task_id]
+
     # Sort by numeric id tail if present (e.g., T-12)
     def sort_key(t: Dict):
         tid = str(t.get("id", "0"))
@@ -56,7 +59,10 @@ def llm_propose_patch(repo: str, task: Dict, worktree: Path) -> str:
         "Markers:\n---PATCH START---\n<patch>\n---PATCH END---\n"
     )
     messages = [
-        {"role": "system", "content": "You are a careful code assistant that outputs correct unified diffs."},
+        {
+            "role": "system",
+            "content": "You are a careful code assistant that outputs correct unified diffs.",
+        },
         {
             "role": "user",
             "content": (
@@ -83,8 +89,14 @@ def main() -> int:
     p.add_argument("--spec", required=True)
     p.add_argument("--slug", required=True)
     p.add_argument("--repo", required=True)
-    p.add_argument("--branch", required=True, help="Existing branch to work on (e.g., spec/003-tiered-...)")
-    p.add_argument("--task-id", default=None, help="Optional single task id (e.g., T-3)")
+    p.add_argument(
+        "--branch",
+        required=True,
+        help="Existing branch to work on (e.g., spec/003-tiered-...)",
+    )
+    p.add_argument(
+        "--task-id", default=None, help="Optional single task id (e.g., T-3)"
+    )
     p.add_argument("--base", default="main")
     args = p.parse_args()
 
@@ -113,7 +125,10 @@ def main() -> int:
         (target / "_proposed.patch").write_text(patch_text, encoding="utf-8")
 
         try:
-            run(["git", "apply", "--whitespace=fix", "--index", "_proposed.patch"], cwd=target)
+            run(
+                ["git", "apply", "--whitespace=fix", "--index", "_proposed.patch"],
+                cwd=target,
+            )
         except subprocess.CalledProcessError:
             print("git apply failed; aborting this task.")
             return 1
@@ -121,8 +136,22 @@ def main() -> int:
         # Build and test for .NET repos (best-effort; skip if no solution found)
         try:
             run(["dotnet", "restore"], cwd=target)
-            run(["dotnet", "build", "--configuration", "Release", "--no-restore"], cwd=target)
-            run(["dotnet", "test", "--configuration", "Release", "--no-build", "--verbosity", "minimal"], cwd=target)
+            run(
+                ["dotnet", "build", "--configuration", "Release", "--no-restore"],
+                cwd=target,
+            )
+            run(
+                [
+                    "dotnet",
+                    "test",
+                    "--configuration",
+                    "Release",
+                    "--no-build",
+                    "--verbosity",
+                    "minimal",
+                ],
+                cwd=target,
+            )
         except subprocess.CalledProcessError:
             print("Build/test failed; reverting staged changes for this task.")
             run(["git", "reset", "--hard"], cwd=target)
@@ -131,8 +160,19 @@ def main() -> int:
         # Commit and push
         msg = f"spec({args.spec}): {tid} apply task via agent"
         run(["git", "add", "."], cwd=target)
-        run(["git", "-c", "user.name=automation-bot", "-c", "user.email=automation-bot@example.com",
-             "commit", "-m", msg], cwd=target)
+        run(
+            [
+                "git",
+                "-c",
+                "user.name=automation-bot",
+                "-c",
+                "user.email=automation-bot@example.com",
+                "commit",
+                "-m",
+                msg,
+            ],
+            cwd=target,
+        )
         run(["git", "push", "origin", args.branch], cwd=target)
 
     print("\nAll selected tasks applied and pushed.")
@@ -141,4 +181,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
