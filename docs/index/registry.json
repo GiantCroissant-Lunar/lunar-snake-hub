@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2025-10-30T21:00:00Z",
+  "generated_at": "2025-10-30T21:15:00Z",
   "repository": "lunar-snake-hub",
-  "total_documents": 20,
+  "total_documents": 21,
   "documents": [
     {
       "doc_id": "DOC-2025-00001",
@@ -203,12 +203,22 @@
       "canonical": true,
       "created": "2025-10-30",
       "tags": ["precommit", "organization", "structure", "best-practices"]
+    },
+    {
+      "doc_id": "DOC-2025-00021",
+      "title": "Session Handover - Dogfooding & Documentation Implementation",
+      "path": "SESSION_HANDOVER_2025-10-30.md",
+      "doc_type": "plan",
+      "status": "active",
+      "canonical": true,
+      "created": "2025-10-30",
+      "tags": ["handover", "session", "dogfooding", "documentation", "precommit"]
     }
   ],
   "stats": {
     "by_type": {
       "reference": 6,
-      "plan": 2,
+      "plan": 3,
       "guide": 9,
       "spec": 1,
       "adr": 1,
@@ -217,12 +227,12 @@
       "glossary": 0
     },
     "by_status": {
-      "active": 20,
+      "active": 21,
       "draft": 0,
       "superseded": 0,
       "rejected": 0,
       "archived": 0
     }
   },
-  "next_doc_id": "DOC-2025-00021"
+  "next_doc_id": "DOC-2025-00022"
 }
