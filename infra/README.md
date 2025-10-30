@@ -28,28 +28,38 @@ This infrastructure supports the lunar-snake-hub architecture with:
 
 ## 🚀 Quick Start
 
+### Infrastructure Philosophy
+
+**Ansible = Provisioning** (install tools, setup environment)
+**Task = Operations** (manage services, deploy, monitor)
+
+This separation ensures:
+- Ansible runs once to provision the Mac Mini
+- Task commands handle day-to-day operations
+- Clean separation of concerns
+
 ### Windows (Setup & Deploy)
 
 ```powershell
 # 1. Install prerequisites
 winget install Mozilla.Sops FiloSottile.age
 
-# 2. Generate age encryption key
+# 2. Configure secrets (see infra/secrets/README.md)
 cd infra\secrets
-.\generate-age-key.ps1
+# Copy config.template.json to config.json
+# Copy secrets.template.json to secrets.json
+# Fill in your actual values (GLM API key, etc.)
+.\encrypt-secrets.ps1
 
-# 3. Create and encrypt environment file
-cp ..\docker\.env.template ..\docker\.env
-# Edit ..\docker\.env with your GLM-4.6 API key
-.\encrypt-env.ps1
-
-# 4. Commit and push encrypted config
-git add ..\docker\.env.enc ..\.sops.yaml
-git commit -m "Add encrypted infrastructure configuration"
+# 3. Commit and push
+git add config.json secrets.enc.json
+git commit -m "Add infrastructure configuration"
 git push origin main
 ```
 
 ### Mac Mini (First Time Setup)
+
+#### Step 1: Provisioning with Ansible (One-Time)
 
 ```bash
 # 1. Clone the repository
@@ -57,18 +67,48 @@ cd ~/repos
 git clone https://github.com/GiantCroissant-Lunar/lunar-snake-hub.git
 cd lunar-snake-hub
 
-# 2. Copy your age key from Windows to Mac
+# 2. Copy your age key from Windows
 mkdir -p ~/.config/sops/age
-# Paste the key contents into ~/.config/sops/age/keys.txt
+nano ~/.config/sops/age/keys.txt
+# Paste the key contents, then save
 chmod 600 ~/.config/sops/age/keys.txt
 
-# 3. Run Ansible playbook (installs everything)
+# 3. Run Ansible provisioning playbook
 cd infra/ansible
 ansible-playbook -i inventory/hosts.yml playbook.yml
 
-# This installs: Docker, SOPS, age, gh, yq, task, etc.
-# Configures: SOPS keys, Docker services, GitHub auth
-# Starts: Letta, Qdrant, n8n containers
+# This ONLY installs tools:
+#  - Homebrew packages (Docker, SOPS, age, gh, yq, task)
+#  - SOPS environment variables
+#  - Docker data directories
+# It does NOT start services!
+```
+
+#### Step 2: Operations with Task (Daily Use)
+
+```bash
+# After Ansible provisioning, use task commands:
+
+cd ~/repos/lunar-snake-hub
+
+# Setup: Generate .env from encrypted secrets
+task infra:setup
+
+# Start: Launch all services
+task infra:start
+
+# Status: Check health
+task infra:status
+
+# Logs: View service logs
+task infra:logs:letta
+task infra:logs:qdrant
+
+# Stop: Stop all services
+task infra:stop
+
+# Development: Full setup + start + status
+task infra:dev
 ```
 
 See detailed setup guides:
@@ -80,28 +120,34 @@ See detailed setup guides:
 
 ```
 infra/
-├── ansible/                    # Ansible automation
-│   ├── playbook.yml           # Main playbook
+├── ansible/                    # Ansible provisioning (one-time setup)
+│   ├── playbook.yml           # Main provisioning playbook
 │   ├── inventory/hosts.yml    # Mac Mini configuration
 │   ├── vars/config.yml        # Variables
 │   └── roles/
 │       ├── homebrew_packages/ # Install packages via brew
-│       ├── sops_setup/        # Configure SOPS/age keys
-│       ├── docker_services/   # Docker Compose management
+│       ├── sops_setup/        # Configure SOPS/age environment
+│       ├── docker_setup/      # Create Docker directories
 │       └── github_integration/# GitHub CLI setup
 │
-├── docker/                    # Docker Compose setup
+├── docker/                    # Docker Compose configuration
 │   ├── docker-compose.yml     # All services (Letta, Qdrant, n8n)
-│   ├── .env.template          # Template for secrets
-│   ├── .env.enc               # Encrypted secrets (in git) ✅
-│   ├── .env                   # Decrypted (gitignored) ❌
+│   ├── .env.template          # Template for environment
+│   ├── .env                   # Generated (gitignored) ❌
 │   └── data/                  # Docker volumes (gitignored)
 │
-└── secrets/                   # SOPS key management
+└── secrets/                   # SOPS secrets management
     ├── README.md              # Comprehensive secrets guide
-    ├── generate-age-key.ps1   # Generate encryption keys (Windows)
-    ├── encrypt-env.ps1        # Encrypt .env (Windows)
-    └── decrypt-env.ps1        # Decrypt .env (Windows)
+    ├── config.json            # Plain configuration ✅
+    ├── config.template.json   # Configuration template ✅
+    ├── secrets.json           # Sensitive data (gitignored) ❌
+    ├── secrets.template.json  # Secrets template ✅
+    ├── secrets.enc.json       # Encrypted secrets ✅
+    ├── schemas/               # JSON Schema validation
+    ├── json-to-env.ps1        # Convert JSON → .env
+    ├── encrypt-secrets.ps1    # Encrypt secrets.json
+    ├── decrypt-secrets.ps1    # Decrypt secrets.enc.json
+    └── generate-age-key.ps1   # Generate age keys (Windows)
 ```
 
 ## 🔧 Services
@@ -203,11 +249,49 @@ tailscale status
 ping juis-mac-mini
 ```
 
+## 🎯 Available Task Commands
+
+Run `task --list` to see all available commands. Key infrastructure tasks:
+
+```bash
+# Infrastructure Management
+task infra:setup         # Generate .env from encrypted secrets
+task infra:start         # Start all Docker services
+task infra:stop          # Stop all services
+task infra:restart       # Restart services
+task infra:status        # Check service status and health
+task infra:logs          # View all service logs
+task infra:logs-letta    # View Letta logs only
+task infra:logs-qdrant   # View Qdrant logs only
+task infra:logs-n8n      # View n8n logs only
+task infra:pull          # Pull latest Docker images
+task infra:clean         # Stop and remove all data (WARNING!)
+task infra:dev           # Quick dev setup (setup + start + status)
+task infra:reset         # Complete reset and restart
+```
+
 ## 📚 Next Steps
 
-1. **Windows:** Generate age key and encrypt .env → `infra/secrets/`
-2. **Mac Mini:** Run Ansible playbook → `infra/ansible/`
-3. **Test:** Access Letta from Windows via Tailscale
-4. **Configure:** Add Letta as MCP tool in VS Code
+1. **Windows:** Configure secrets → `infra/secrets/`
+   ```powershell
+   cd infra\secrets
+   # Edit config.json and secrets.json
+   .\encrypt-secrets.ps1
+   ```
 
-See: [SESSION_HANDOVER_2025-10-30.md](../SESSION_HANDOVER_2025-10-30.md) Task #6-8
+2. **Mac Mini:** Provision with Ansible → `infra/ansible/`
+   ```bash
+   ansible-playbook -i inventory/hosts.yml playbook.yml
+   ```
+
+3. **Mac Mini:** Deploy services with Task
+   ```bash
+   task infra:dev  # Setup + start + status
+   ```
+
+4. **Test:** Access from Windows
+   ```powershell
+   curl http://juis-mac-mini:5055/v1/health
+   ```
+
+5. **Configure:** Add Letta as MCP tool in VS Code

@@ -1,63 +1,63 @@
+- name: Verify SOPS is installed
+  command: sops --version
+  register: sops_version
+  changed_when: false
+  failed_when: sops_version.rc != 0
+
+- name: Verify age is installed
+  command: age --version
+  register: age_version
+  changed_when: false
+  failed_when: age_version.rc != 0
+
 - name: Create SOPS age key directory
   file:
     path: '{{ sops_age_key_dir }}'
     state: directory
     mode: '0700'
 
-- name: Check if age key already exists
+- name: Check if age key exists
   stat:
     path: '{{ sops_age_key_file }}'
   register: age_key_stat
 
-- name: Generate age key if not exists
-  shell: age-keygen -o "{{ sops_age_key_file }}"
-  when: not age_key_stat.stat.exists
-
-- name: Set age key file permissions
+- name: Set age key file permissions (if exists)
   file:
     path: '{{ sops_age_key_file }}'
     mode: '0600'
+  when: age_key_stat.stat.exists
 
-- name: Read age public key
-  shell: grep "^# public key:" "{{ sops_age_key_file }}" | awk '{print $NF}'
-  register: age_public_key
-  changed_when: false
-
-- name: Display age public key
-  debug:
-    msg: |
-      ✅ age key setup complete!
-
-      📋 Your age public key (for .sops.yaml):
-      {{ age_public_key.stdout }}
-
-      🔐 Private key location:
-      {{ sops_age_key_file }}
-
-      ⚠️  IMPORTANT: Add the PRIVATE key as a GitHub secret:
-      1. Copy the ENTIRE contents of {{ sops_age_key_file }}
-      2. Go to: https://github.com/{{ github_org }}/{{ hub_repo_name }}/settings/secrets/actions
-      3. Create a new secret named: SOPS_AGE_KEY
-      4. Paste the entire key file contents (including "# created:" and "# public key:" lines)
-
-- name: Create .sops.yaml configuration
-  template:
-    src: sops.yaml.j2
-    dest: '{{ hub_repo_path }}/.sops.yaml'
-    mode: '0644'
-  when: age_public_key.stdout | length > 0
-
-- name: Set SOPS_AGE_KEY_FILE environment variable
+- name: Set SOPS_AGE_KEY_FILE environment variable in .zshrc
   lineinfile:
     path: '{{ ansible_env.HOME }}/.zshrc'
     line: export SOPS_AGE_KEY_FILE="{{ sops_age_key_file }}"
     create: yes
     state: present
 
-- name: Set SOPS_AGE_KEY_FILE in bash profile (if exists)
+- name: Set SOPS_AGE_KEY_FILE in .bash_profile
   lineinfile:
     path: '{{ ansible_env.HOME }}/.bash_profile'
     line: export SOPS_AGE_KEY_FILE="{{ sops_age_key_file }}"
     create: yes
     state: present
-  when: ansible_env.SHELL is search("bash")
+
+- name: Display SOPS setup status
+  debug:
+    msg: |
+      ✅ SOPS setup complete!
+
+      🔐 SOPS version: {{ sops_version.stdout }}
+      🔑 age version: {{ age_version.stdout }}
+      📂 Key directory: {{ sops_age_key_dir }}
+      📄 Key file: {{ sops_age_key_file }}
+
+      {% if age_key_stat.stat.exists %}
+      ✅ age key found at {{ sops_age_key_file }}
+      {% else %}
+      ⚠️  age key NOT found!
+
+      You must copy your age key from Windows:
+      1. On Windows: C:\Users\User\.config\sops\age\keys.txt
+      2. Copy contents to Mac Mini: {{ sops_age_key_file }}
+      3. Set permissions: chmod 600 {{ sops_age_key_file }}
+      {% endif %}

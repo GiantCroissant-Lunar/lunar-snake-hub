@@ -1,4 +1,4 @@
-- name: Setup lunar-snake-hub infrastructure on Mac Mini
+- name: Provision lunar-snake-hub infrastructure on Mac Mini
   hosts: localhost
   connection: local
   gather_facts: true
@@ -7,5 +7,5 @@
   roles:
   - homebrew_packages
   - sops_setup
-  - docker_services
+  - docker_setup
   - github_integration

@@ -1,0 +1,35 @@
+- name: Verify Docker is installed
+  command: docker --version
+  register: docker_version
+  changed_when: false
+  failed_when: docker_version.rc != 0
+
+- name: Display Docker version
+  debug:
+    msg: '{{ docker_version.stdout }}'
+
+- name: Create Docker data directories
+  file:
+    path: '{{ item }}'
+    state: directory
+    mode: '0755'
+  loop:
+  - '{{ docker_data_path }}'
+  - '{{ docker_data_path }}/letta'
+  - '{{ docker_data_path }}/qdrant'
+  - '{{ docker_data_path }}/n8n'
+  - '{{ docker_data_path }}/gateway'
+
+- name: Display next steps
+  debug:
+    msg: |
+      ✅ Docker setup complete!
+
+      📁 Data directories created:
+      {{ docker_data_path }}
+
+      🚀 Next steps (use task commands):
+      cd {{ hub_repo_path }}
+      task setup      # Generate .env from secrets
+      task start      # Start all services
+      task status     # Check service health

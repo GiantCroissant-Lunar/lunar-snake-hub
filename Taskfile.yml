@@ -37,7 +37,7 @@ tasks:
   hub:copy:
     desc: Copy hub assets to cache
     internal: true
-    deps: [hub:clone]
+    deps: ['hub:clone']
     cmds:
     - mkdir -p {{.HUB_CACHE}}
     - cp -r {{.HUB_CACHE}}/hub-repo/agents {{.HUB_CACHE}}/
@@ -87,6 +87,153 @@ tasks:
     cmds:
     - rm -rf {{.HUB_CACHE}}
     - echo "✅ Hub cache cleaned"
+
+  # === Infrastructure Tasks (Mac Mini) ===
+
+  infra:setup:
+    desc: Generate .env from encrypted secrets
+    dir: infra/secrets
+    cmds:
+    - |
+      echo "📋 Generating .env from config.json + secrets.enc.json..."
+      if [ "$(uname)" = "Darwin" ]; then
+        # Mac Mini: use bash/sh
+        export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+        cd ../../
+        sops decrypt infra/secrets/secrets.enc.json > /tmp/secrets.json
+        # Merge config + secrets -> .env (simplified version)
+        # For full implementation, use Python/Node script
+        echo "OPENAI_API_KEY=$(jq -r '.GLM.ApiKey' /tmp/secrets.json)" > infra/docker/.env
+        echo "OPENAI_BASE_URL=$(jq -r '.GLM.BaseURL' infra/secrets/config.json)" >> infra/docker/.env
+        echo "GATEWAY_TOKEN=$(jq -r '.Services.Gateway.Token' /tmp/secrets.json)" >> infra/docker/.env
+        echo "N8N_USER=$(jq -r '.Services.N8n.User' infra/secrets/config.json)" >> infra/docker/.env
+        echo "N8N_PASSWORD=$(jq -r '.Services.N8n.Password' /tmp/secrets.json)" >> infra/docker/.env
+        rm /tmp/secrets.json
+      else
+        # Windows: use PowerShell script
+        pwsh -File json-to-env.ps1 -Encrypted
+      fi
+      echo "✅ .env generated!"
+
+  infra:start:
+    desc: Start all Docker services
+    dir: infra/docker
+    deps:
+      - infra:check-env
+    cmds:
+    - |
+      echo "🐳 Starting Docker services..."
+      docker compose up -d
+      echo "✅ Services started!"
+      echo ""
+      echo "🔗 Access via Tailscale:"
+      echo "  - Letta: http://juis-mac-mini:5055/v1/health"
+      echo "  - Qdrant: http://juis-mac-mini:6333"
+      echo "  - n8n: http://juis-mac-mini:5678"
+      echo "  - Gateway: http://juis-mac-mini:5057 (Phase 2)"
+
+  infra:stop:
+    desc: Stop all Docker services
+    dir: infra/docker
+    cmds:
+    - |
+      echo "🛑 Stopping Docker services..."
+      docker compose down
+      echo "✅ Services stopped!"
+
+  infra:restart:
+    desc: Restart all Docker services
+    cmds:
+    - task: infra:stop
+    - task: infra:start
+
+  infra:status:
+    desc: Check status of all services
+    dir: infra/docker
+    cmds:
+    - |
+      echo "📊 Service Status:"
+      docker compose ps
+      echo ""
+      echo "🏥 Health Checks:"
+      echo ""
+      echo -n "Letta (5055): "
+      curl -s -f http://localhost:5055/v1/health > /dev/null && echo "✅ Healthy" || echo "❌ Not responding"
+      echo -n "Qdrant (6333): "
+      curl -s -f http://localhost:6333/healthz > /dev/null && echo "✅ Healthy" || echo "❌ Not responding"
+
+  infra:logs:
+    desc: View logs for all services (or use -- <service> for specific service)
+    dir: infra/docker
+    cmds:
+    - docker compose logs -f {{.CLI_ARGS}}
+
+  infra:logs-letta:
+    desc: View Letta logs
+    dir: infra/docker
+    cmds:
+    - docker compose logs -f letta
+
+  infra:logs-qdrant:
+    desc: View Qdrant logs
+    dir: infra/docker
+    cmds:
+    - docker compose logs -f qdrant
+
+  infra:logs-n8n:
+    desc: View n8n logs
+    dir: infra/docker
+    cmds:
+    - docker compose logs -f n8n
+
+  infra:pull:
+    desc: Pull latest Docker images
+    dir: infra/docker
+    cmds:
+    - |
+      echo "📥 Pulling latest Docker images..."
+      docker compose pull
+      echo "✅ Images updated!"
+
+  infra:clean:
+    desc: Stop services and remove volumes (WARNING - deletes all data!)
+    dir: infra/docker
+    prompt: This will delete all service data. Continue?
+    cmds:
+    - |
+      echo "🗑️  Cleaning up..."
+      docker compose down -v
+      rm -f .env
+      echo "✅ Cleanup complete!"
+
+  infra:dev:
+    desc: Full development setup (setup + start + status)
+    cmds:
+    - task: infra:setup
+    - task: infra:start
+    - sleep 5
+    - task: infra:status
+
+  infra:reset:
+    desc: Complete reset (stop + clean + setup + start)
+    cmds:
+    - task: infra:stop
+    - task: infra:clean
+    - task: infra:setup
+    - task: infra:start
+
+  infra:check-env:
+    desc: Check if .env file exists
+    internal: true
+    dir: infra/docker
+    cmds:
+    - |
+      if [ ! -f .env ]; then
+        echo "❌ .env file not found!"
+        echo ""
+        echo "Run: task infra:setup"
+        exit 1
+      fi
 
   # === Pre-commit Tasks ===
 
