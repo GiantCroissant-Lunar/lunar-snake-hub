@@ -26,16 +26,19 @@ This guide explains how to configure Letta as an MCP (Model Context Protocol) to
 ## Step 1: Find Your MCP Configuration
 
 ### Option A: VS Code Settings (Recommended)
+
 1. Open VS Code
 2. Go to **Settings** (Ctrl+, or Cmd+,)
 3. Search for "MCP" or "Cline"
 4. Look for "MCP Servers" configuration
 
 ### Option B: Workspace Configuration File
+
 1. Check for `.mcp-config.json` in your workspace root
 2. Or look in `.vscode/settings.json`
 
 ### Option C: Cline Extension Settings
+
 1. VS Code → Extensions → Cline
 2. Look for MCP Server configuration
 
@@ -112,12 +115,14 @@ The actual endpoints might differ from the examples above. Update the MCP config
 ## Step 4: Test MCP Configuration
 
 ### Basic Memory Test
+
 1. Restart VS Code to load the new MCP configuration
 2. Open a conversation with Cline/Roo/Kilo
 3. Ask: **"Remember this: We chose Repository pattern for data access"**
 4. The agent should call the `save_memory` tool
 
 ### Memory Retrieval Test
+
 1. Restart VS Code completely
 2. Ask: **"What pattern did we choose for data access?"**
 3. The agent should call `get_memory` and recall the previous decision
@@ -125,6 +130,7 @@ The actual endpoints might differ from the examples above. Update the MCP config
 ## Step 5: Common MCP Configuration Patterns
 
 ### Pattern 1: VS Code Settings UI
+
 ```json
 // In VS Code Settings
 {
@@ -139,6 +145,7 @@ The actual endpoints might differ from the examples above. Update the MCP config
 ```
 
 ### Pattern 2: Workspace .mcp-config.json
+
 ```json
 {
   "mcpServers": {
@@ -150,6 +157,7 @@ The actual endpoints might differ from the examples above. Update the MCP config
 ```
 
 ### Pattern 3: .vscode/settings.json
+
 ```json
 {
   "mcp.mcpServers": {
@@ -163,6 +171,7 @@ The actual endpoints might differ from the examples above. Update the MCP config
 ## Troubleshooting
 
 ### MCP Server Not Found
+
 ```bash
 # Check if Letta is running
 curl http://<mac-mini-tailscale-name>:5055/v1/health
@@ -172,13 +181,16 @@ ping <mac-mini-tailscale-name>
 ```
 
 ### Tool Not Available
+
 1. Restart VS Code
 2. Check MCP configuration syntax
 3. Verify Letta API endpoints exist
 4. Check VS Code developer console for errors
 
 ### Authentication Issues
+
 If Letta requires authentication:
+
 ```json
 {
   "headers": {
@@ -189,7 +201,9 @@ If Letta requires authentication:
 ```
 
 ### SSL/TLS Issues
+
 If using HTTPS:
+
 ```json
 {
   "baseUrl": "https://<mac-mini-tailscale-name>:5055",
@@ -201,6 +215,7 @@ If using HTTPS:
 ## Step 6: Advanced Configuration
 
 ### Custom Tool Mappings
+
 If Letta has different API structure:
 
 ```json
@@ -220,6 +235,7 @@ If Letta has different API structure:
 ```
 
 ### Multiple Agents
+
 ```json
 {
   "tools": [
@@ -242,11 +258,13 @@ After MCP configuration is working:
 ## Success Criteria
 
 ✅ **MCP Configuration Working:**
+
 - Letta tools appear in agent tool list
 - Agent can save and retrieve memories
 - Configuration persists across VS Code restarts
 
 ✅ **Integration Verified:**
+
 - Memory works across different conversations
 - Agent recalls decisions correctly
 - No errors in VS Code developer console

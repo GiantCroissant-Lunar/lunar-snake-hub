@@ -157,6 +157,7 @@ curl -X POST http://localhost:5055/v1/agents \
 ## Troubleshooting
 
 ### If Docker won't start
+
 ```bash
 # Check Docker status
 docker info
@@ -167,6 +168,7 @@ sudo systemctl restart docker  # Linux
 ```
 
 ### If Letta container fails
+
 ```bash
 # Check logs
 docker compose logs letta
@@ -180,6 +182,7 @@ docker compose up -d --build
 ```
 
 ### If SOPS decryption fails
+
 ```bash
 # Check if age key is available
 age-keygen -y
@@ -191,6 +194,7 @@ age-keygen -o ~/.config/sops/age/keys.txt
 ```
 
 ### If Tailscale connection fails
+
 ```bash
 # Check Tailscale status
 tailscale status
@@ -213,12 +217,14 @@ After completing this setup:
 ## Success Criteria
 
 ✅ **Mac Mini Setup Complete:**
+
 - Docker running
 - Letta container accessible on port 5055
 - Health check returns `{"status":"ok"}`
 - Accessible from Windows via Tailscale
 
 ✅ **Ready for Phase 1 Testing:**
+
 - Secrets decrypted and loaded
 - Letta API responding
 - Network connectivity confirmed

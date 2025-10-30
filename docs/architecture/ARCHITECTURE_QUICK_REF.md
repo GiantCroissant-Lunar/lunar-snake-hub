@@ -15,6 +15,7 @@ source:
 ---
 
 # Architecture Quick Reference
+
 ## TL;DR for Implementation
 
 **Full Documentation:** See `ARCHITECTURE_DISCUSSION.md`
@@ -141,6 +142,7 @@ echo "✅ Hub assets synced to $CACHE"
 ```
 
 **Run:**
+
 - On setup: `make setup` or `./tools/bootstrap-hub.sh`
 - In CI: First step before build
 - IDE: VS Code `preLaunchTask`
@@ -228,6 +230,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
 ### Developer Flow
 
 1. **Setup new project:**
+
    ```bash
    git clone <satellite-repo>
    ./tools/bootstrap-hub.sh
@@ -249,6 +252,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
 ### Hub Update Flow
 
 1. **Update rule in `lunar-hub`:**
+
    ```bash
    cd lunar-hub
    vim agents/rules/R-CODE-010-naming.md
@@ -256,6 +260,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
    ```
 
 2. **Release new pack:**
+
    ```bash
    ./scripts/publish-packs.sh agents 1.5.3
    git tag packs-agents-v1.5.3
@@ -275,6 +280,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
 ## Phased Rollout
 
 ### Phase 1 (Week 1): Foundation
+
 - ✅ Create `lunar-hub`
 - ✅ Move NUKE + agent rules
 - ✅ Set up Letta (memory)
@@ -283,6 +289,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
 **Result:** Zero duplication, persistent memory
 
 ### Phase 2 (Week 2): Context
+
 - ✅ Add Qdrant + Context Gateway
 - ✅ Index repos for RAG
 - ✅ IDE agents use `/ask`
@@ -290,6 +297,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
 **Result:** Context burn solved
 
 ### Phase 3 (Week 3): Orchestration
+
 - ✅ Set up n8n
 - ✅ GitHub webhooks → auto-reindex
 - ✅ Scheduled fallbacks
@@ -297,6 +305,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
 **Result:** Fully automated
 
 ### Phase 4 (Week 4+): Scale
+
 - ✅ Migrate all satellites
 - ✅ Version bump automation
 - ✅ Contract tests
@@ -308,6 +317,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
 ## Naming Conventions
 
 ### Tags
+
 ```
 packs-{type}-v{semver}        # packs-nuke-v2.1.0
 spec-{name}-v{semver}         # spec-auth-api-v1.2.0
@@ -315,6 +325,7 @@ v{major}                      # v1 (for workflows)
 ```
 
 ### Agent Rules
+
 ```
 R-{CATEGORY}-{NUMBER}-{desc}.md
 

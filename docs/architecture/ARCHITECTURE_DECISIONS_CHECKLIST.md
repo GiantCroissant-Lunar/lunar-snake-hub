@@ -15,6 +15,7 @@ source:
 ---
 
 # Architecture Decisions Checklist
+
 ## Make These Choices Before Phase 1
 
 **Status:** Decision phase
@@ -46,6 +47,7 @@ source:
 I think I will use "lunar-snake-hub". As Lunar Snake is not over yet. And I intend to use lunar-horse next lunar year, so on and on.
 
 **Rationale:**
+
 - Keep "lunar" namespace for all your projects
 - "hub" clearly indicates central role
 - Short and memorable
@@ -58,6 +60,7 @@ I think I will use "lunar-snake-hub". As Lunar Snake is not over yet. And I inte
 **Goal:** Pick ONE project to test Phase 1 with
 
 **Your projects:**
+
 ```
 C:\lunar-snake\personal-work\
 ├── infra-projects\
@@ -66,6 +69,7 @@ C:\lunar-snake\personal-work\
 ```
 
 **Selection criteria:**
+
 - ✅ Small-to-medium size (not huge)
 - ✅ Has NUKE build (to extract)
 - ✅ Has agent rules (to centralize)
@@ -94,7 +98,7 @@ Originally, I have made 3 layers, where infra layer deals the foundation, build,
 **Your choice:** ☐ Personal  ☐ Organization
 
 Organization
-"https://github.com/GiantCroissant-Lunar/lablab-bean"
+"<https://github.com/GiantCroissant-Lunar/lablab-bean>"
 
 ---
 
@@ -110,45 +114,46 @@ Organization
 | **Sentence-Transformers** | Local model | ✅ Free<br>✅ Private | ❌ Lower quality<br>❌ Needs GPU or slow |
 
 **Recommendation:**
+
 - **Phase 1-2:** OpenAI `text-embedding-3-small` (proven)
 - **Phase 3+:** Test GLM embeddings, switch if comparable
 
 **Your choice:** ________________________
 
 **Budget consideration:**
+
 - Small: ~$0.02 per 1M tokens
 - For your repos (~10 repos, 100K lines each): ~$5-10 one-time + $1-2/month for updates
 
-I have subscribed to "https://docs.z.ai/devpack/overview" GLM 4.6 coding plan. So will mainly use it.
+I have subscribed to "<https://docs.z.ai/devpack/overview>" GLM 4.6 coding plan. So will mainly use it.
 
 ```
 Current Rate Limits
 API usage is limited by concurrency (i.e., the number of in-flight requests). Below are the current rate limits for each model.
 
-Model type	Model name	Concurrency limit
-Language Model	GLM-4.6	5
-Language Model	GLM-4.5	10
-Language Model	GLM-4-Plus	20
-Language Model	GLM-4.5-X	1
-Language Model	GLM-4.5V	10
-Language Model	GLM-4.5-Air	5
-Language Model	GLM-4.5-AirX	5
-Language Model	GLM-4.5-Flash	2
-Language Model	GLM-4-32B-0414-128K	15
-Image Generation Model	CogView-4-250304	5
-Video Generation Model	ViduQ1-text	5
-Video Generation Model	viduq1-image	5
-Video Generation Model	viduq1-start-end	5
-Video Generation Model	vidu2-image	5
-Video Generation Model	vidu2-start-end	5
-Video Generation Model	vidu2-reference	5
-Video Generation Model	CogVideoX-3	1
+Model type Model name Concurrency limit
+Language Model GLM-4.6 5
+Language Model GLM-4.5 10
+Language Model GLM-4-Plus 20
+Language Model GLM-4.5-X 1
+Language Model GLM-4.5V 10
+Language Model GLM-4.5-Air 5
+Language Model GLM-4.5-AirX 5
+Language Model GLM-4.5-Flash 2
+Language Model GLM-4-32B-0414-128K 15
+Image Generation Model CogView-4-250304 5
+Video Generation Model ViduQ1-text 5
+Video Generation Model viduq1-image 5
+Video Generation Model viduq1-start-end 5
+Video Generation Model vidu2-image 5
+Video Generation Model vidu2-start-end 5
+Video Generation Model vidu2-reference 5
+Video Generation Model CogVideoX-3 1
 
 
 Explanation of Rate Limits
 To ensure stable access to GLM-4-Flash during the free trial, requests with context lengths over 8K will be throttled to 1% of the standard concurrency limit.
 ```
-
 
 ---
 
@@ -183,6 +188,7 @@ Both windows, mac are installed with Tailscale hours ago.
 | **No (use n8n only)** | Phase 1-2 | ✅ Simpler<br>✅ Less moving parts |
 
 **Recommendation:**
+
 - Phase 1-2: Use n8n webhooks only
 - Phase 3+: Add self-hosted runner
 
@@ -197,6 +203,7 @@ I prefer to utilize github public free runner minute as much as possible, so I i
 **Question:** Add contract tests to enforce spec compliance?
 
 **Example:**
+
 ```csharp
 // specs/auth-api/v1.2.0/contract-tests/AuthApiContractTests.cs
 [Fact]
@@ -247,11 +254,13 @@ I prefer to store secret in lunar-snake-hub repo encrypted using sops and decryp
 **Current suggestion:** `R-{CATEGORY}-{NUMBER}-{desc}.md`
 
 **Examples:**
+
 - `R-CODE-010-naming.md`
 - `R-DOC-030-comments.md`
 - `R-NUKE-001-targets.md`
 
 **Alternatives:**
+
 - `{category}/{number}-{desc}.md` (folder-based)
 - `{category}-{desc}.md` (no numbers)
 
@@ -285,11 +294,13 @@ I don't want to use old "make". I am using "task"
 ### Phase 1: Foundation (Week 1)
 
 **Prerequisites:**
+
 - ✅ Decide hub name
 - ✅ Pick pilot satellite
 - ✅ Mac Mini accessible (Tailscale)
 
 **Tasks:** (4 hours total)
+
 1. Create `lunar-hub` repo (30 min)
 2. Extract NUKE build → hub (45 min)
 3. Move agent rules → hub (30 min)
@@ -305,10 +316,12 @@ I don't want to use old "make". I am using "task"
 ### Phase 2: Context Server (Week 2)
 
 **Prerequisites:**
+
 - ✅ Phase 1 complete
 - ✅ Embeddings provider decided
 
 **Tasks:** (6 hours total)
+
 1. Add Qdrant to compose (15 min)
 2. Build Context Gateway (3 hours)
 3. Index pilot satellite (1 hour)
@@ -322,9 +335,11 @@ I don't want to use old "make". I am using "task"
 ### Phase 3: Orchestration (Week 3)
 
 **Prerequisites:**
+
 - ✅ Phase 2 complete
 
 **Tasks:** (4 hours total)
+
 1. Set up n8n (30 min)
 2. Create webhook workflow (1 hour)
 3. Create cron fallback (30 min)
@@ -339,10 +354,12 @@ I don't want to use old "make". I am using "task"
 ### Phase 4: Scale (Week 4+)
 
 **Prerequisites:**
+
 - ✅ Phase 3 complete
 - ✅ Hub tested with 1 satellite for 1 week
 
 **Tasks:** (2 hours per satellite + 4 hours infrastructure)
+
 1. Publish packs as releases (2 hours)
 2. Create `registry/satellites.json` (30 min)
 3. Write PR-opener script (1.5 hours)
@@ -450,6 +467,5 @@ additional_notes: |
 **Created:** 2025-10-30
 **Location:** `jack-bean/docs/ARCHITECTURE_DECISIONS_CHECKLIST.md`
 
-
 I would like to utilize agentic development as much as possible.
-I try to adopt speck-kit, but I see some limitation for just driven by spec. I may try "https://github.com/bmad-code-org/BMAD-METHOD"
+I try to adopt speck-kit, but I see some limitation for just driven by spec. I may try "<https://github.com/bmad-code-org/BMAD-METHOD>"

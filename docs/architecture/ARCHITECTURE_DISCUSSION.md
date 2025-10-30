@@ -14,6 +14,7 @@ source:
 ---
 
 # Multi-Project Development Architecture
+
 ## Context-Aware, Memory-Persistent, Agent-Centric System
 
 **Date:** 2025-10-30
@@ -74,12 +75,14 @@ This document captures the architectural discussion and design for a multi-proje
 ### Pain Points (Prioritized)
 
 #### 1. Duplication Hell (Immediate)
+
 - NUKE build scripts duplicated across every repo
 - Agent rules (`.agent/` folders) copied manually
 - Pre-commit hooks duplicated
 - **Worse:** Each agent writes them differently, causing drift
 
 **Example:**
+
 ```
 infra-projects/project-a/nuke/Build.cs
 infra-projects/project-b/nuke/Build.cs  # Similar but different!
@@ -87,17 +90,20 @@ plate-projects/project-c/nuke/Build.cs  # Agent wrote it differently!
 ```
 
 #### 2. Context Burn (Immediate)
+
 - Monorepo approach consumes tokens too fast
 - Agents load entire codebase even for small changes
 - GLM-4.6 has 200K token window but still burns through it
 
 #### 3. Agent Amnesia (Immediate)
+
 - No memory across IDE sessions
 - Decisions/rationale lost when switching projects
 - Agents re-ask the same questions
 - Architecture choices not remembered
 
 #### 4. Agent Disobedience (Moderate)
+
 - Agent rules exist but aren't consistently followed
 - No enforcement mechanism
 - Rules scattered across repos
@@ -105,17 +111,20 @@ plate-projects/project-c/nuke/Build.cs  # Agent wrote it differently!
 ### Previous Approaches Tried
 
 **Multi-repo (current):**
+
 - ✅ Clean separation
 - ❌ Massive duplication
 - ❌ Agents confused by multiple repos
 - ❌ Wrong docs/paths frequently
 
 **Monorepo:**
+
 - ✅ Single source of truth
 - ❌ Context burns too quickly
 - ❌ Agents load everything even for small changes
 
 **Multi-repo with Git Submodules:**
+
 - ❌ Hard to maintain
 - ❌ Duplication still exists
 - ❌ Submodule complexity
@@ -231,6 +240,7 @@ plate-projects/project-c/nuke/Build.cs  # Agent wrote it differently!
 ### Purpose
 
 Single source of truth for:
+
 - Specifications (RFCs, ADRs)
 - Agent rules and prompts
 - Reusable build components (NUKE)
@@ -568,6 +578,7 @@ echo "   Hooks:  v$PRECOMMIT_VER"
 ```
 
 **When to run:**
+
 - `make setup` (or `dotnet tool restore`)
 - Pre-commit hook (ensure cache is fresh)
 - CI first step
@@ -634,6 +645,7 @@ repos:
 ### Mac Mini Stack
 
 **Hardware:**
+
 - Mac Mini M4
 - Always-on
 - Accessible via Tailscale VPN or local network
@@ -720,6 +732,7 @@ services:
 **Purpose:** Store embeddings for RAG (Retrieval-Augmented Generation)
 
 **Why Qdrant:**
+
 - ✅ ARM64-native (runs great on M4)
 - ✅ Production-ready (HNSW indexing, quantization)
 - ✅ Excellent LangChain integration
@@ -727,6 +740,7 @@ services:
 - ✅ Snapshots & backups built-in
 
 **Collections:**
+
 ```python
 # Each repo gets a collection
 collections = {
@@ -756,6 +770,7 @@ point = {
 **Purpose:** Persistent, stateful agent memory across sessions
 
 **Why Letta:**
+
 - ✅ Purpose-built for agent memory
 - ✅ Supports multiple personas/agents
 - ✅ Checkpointing (`.af` Agent Files)
@@ -976,6 +991,7 @@ async def reindex(body: ReindexRequest, authorization: str | None = Header(None)
 **Key Workflows:**
 
 **Workflow 1: Repo Updated (Webhook)**
+
 ```
 Trigger: Webhook /github/push
   ↓
@@ -989,6 +1005,7 @@ Notify: Slack/Email on failure
 ```
 
 **Workflow 2: Scheduled Fallback**
+
 ```
 Trigger: Cron */10 * * * *
   ↓
@@ -1004,6 +1021,7 @@ HTTP Request: POST /reindex
 ```
 
 **Workflow 3: Spec Release Fan-out**
+
 ```
 Trigger: Webhook /spec/released?spec=auth-api&version=1.3.0
   ↓
@@ -1033,6 +1051,7 @@ HTTP Request: POST /reindex?repo={satellite}
 #### 1. Developer Local (Windows)
 
 **Initial Setup:**
+
 ```bash
 git clone https://github.com/lunar-snake/infra-projects-auth-service.git
 cd infra-projects-auth-service
@@ -1040,11 +1059,13 @@ cd infra-projects-auth-service
 ```
 
 **Ongoing (Automatic):**
+
 - **VS Code Task:** `preLaunchTask: "Hub Bootstrap"` runs script on IDE open
 - **Pre-commit Hook:** Verifies cache is fresh (warns if stale)
 - **Make target:** `make setup` → runs bootstrap
 
 **Manual Refresh:**
+
 ```bash
 ./tools/bootstrap-hub.sh --force
 ```
@@ -1052,6 +1073,7 @@ cd infra-projects-auth-service
 #### 2. CI (GitHub Actions)
 
 **Every pipeline starts with:**
+
 ```yaml
 steps:
   - uses: actions/checkout@v4
@@ -1081,6 +1103,7 @@ sequenceDiagram
 ```
 
 **Persistent Clone Structure:**
+
 ```bash
 ~/repos/
 ├── lunar-hub/                    # Central hub (always latest)
@@ -1149,6 +1172,7 @@ precommit = "2.3.0"
 ```
 
 **Satellite CI runs:**
+
 - Bootstrap with new version
 - Contract tests pass
 - Developer reviews, merges
@@ -1158,6 +1182,7 @@ precommit = "2.3.0"
 **Scenario:** Satellite has local `.hub-cache/` changes (shouldn't happen, but...)
 
 **Solution:**
+
 ```bash
 # bootstrap-hub.sh always force-overwrites
 rm -rf .hub-cache/nuke
@@ -1165,6 +1190,7 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 ```
 
 **Prevention:**
+
 - `.hub-cache/` is read-only for developers (enforced by pre-commit)
 - If you need to modify a rule, edit in `lunar-hub`, release new version
 
@@ -1173,9 +1199,11 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 ## Phased Implementation
 
 ### Phase 1: Foundation (Week 1)
+
 **Goal:** Stop duplication, add memory
 
 **Deliverables:**
+
 1. ✅ Create `lunar-hub` repo
 2. ✅ Move one NUKE build → `nuke/Build.DotNet.cs`
 3. ✅ Move agent rules → `agents/rules/`
@@ -1186,6 +1214,7 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 8. ✅ Test: one satellite (e.g., auth-service) consumes hub
 
 **Success Criteria:**
+
 - Agent reads NUKE template from hub (not duplicated)
 - Agent can store/retrieve decisions via Letta
 - Zero duplication of agent rules
@@ -1195,9 +1224,11 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 ---
 
 ### Phase 2: Context Server (Week 2)
+
 **Goal:** Add RAG to prevent context burn
 
 **Deliverables:**
+
 1. ✅ Add Qdrant to Mac Mini Docker Compose
 2. ✅ Build minimal Context Gateway (`/ask`, `/memory`, `/notes`)
 3. ✅ Index one repo into Qdrant
@@ -1205,6 +1236,7 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 5. ✅ Test: agent uses `/ask` instead of loading entire repo
 
 **Success Criteria:**
+
 - Agent retrieves top-5 relevant chunks instead of full repo
 - Token usage drops by >50%
 - Answers include citations (file paths + line numbers)
@@ -1214,9 +1246,11 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 ---
 
 ### Phase 3: Orchestration (Week 3)
+
 **Goal:** Automate sync, reindex, and version upgrades
 
 **Deliverables:**
+
 1. ✅ Set up n8n on Mac Mini
 2. ✅ Create "Repo Updated" webhook workflow
 3. ✅ Create "Scheduled Fallback" cron workflow
@@ -1225,6 +1259,7 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 6. ✅ Test: push to satellite → auto-reindex on Mac Mini
 
 **Success Criteria:**
+
 - Push to satellite triggers reindex within 30 seconds
 - Fallback cron catches missed webhooks
 - n8n logs visible via web UI
@@ -1234,9 +1269,11 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 ---
 
 ### Phase 4: Multi-Satellite (Week 4+)
+
 **Goal:** Scale to all repos, add version management
 
 **Deliverables:**
+
 1. ✅ Publish hub packs as GitHub Release artifacts
 2. ✅ Create `registry/satellites.json` with all repos
 3. ✅ Write `scripts/open-pr-upgrade.ts` (version bump PRs)
@@ -1244,6 +1281,7 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 5. ✅ Migrate all satellite repos to hub consumption
 
 **Success Criteria:**
+
 - All satellites consume hub via bootstrap
 - Version bumps open PRs automatically
 - Contract tests enforce spec compliance
@@ -1334,12 +1372,14 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 **Considered:** Git submodules for sharing hub content
 
 **Rejected because:**
+
 - ❌ Complexity (nested git state)
 - ❌ Easy to get out of sync
 - ❌ Doesn't prevent duplication (each satellite has full copy)
 - ❌ Merge conflicts when hub updates
 
 **Chosen instead:** Runtime sync with version pinning
+
 - ✅ Simple (just download zips)
 - ✅ Explicit versioning
 - ✅ No git nesting
@@ -1352,11 +1392,13 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 **Considered:** AWS/GCP for context services
 
 **Rejected because:**
+
 - ❌ Ongoing cost
 - ❌ Network latency (Windows → Cloud)
 - ❌ Over-engineering for solo dev
 
 **Chosen instead:** Mac Mini on LAN
+
 - ✅ Zero cost (hardware already owned)
 - ✅ Sub-10ms latency (local network)
 - ✅ Full control
@@ -1405,12 +1447,14 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 **Key Question:** Should satellites commit `.agents/`, `nuke/`, etc.?
 
 **No, because:**
+
 - ❌ Defeats the purpose (still duplicated in git)
 - ❌ Merge conflicts when hub updates
 - ❌ Satellites look cluttered on GitHub
 - ❌ Version drift (which commit has which version?)
 
 **Yes to runtime sync:**
+
 - ✅ Satellites are code-only on GitHub
 - ✅ Explicit version pinning (`.hub-manifest.toml`)
 - ✅ Zero duplication
@@ -1531,14 +1575,14 @@ auth-service/
 
 ### External Documentation
 
-- **Letta:** https://docs.letta.com/
-- **Qdrant:** https://qdrant.tech/documentation/
-- **LangChain:** https://python.langchain.com/docs/
-- **n8n:** https://docs.n8n.io/
-- **NUKE:** https://nuke.build/
-- **Pre-commit:** https://pre-commit.com/
-- **GLM-4.6 (Zhipu):** https://open.bigmodel.cn/dev/api
-- **MCP (Model Context Protocol):** https://modelcontextprotocol.io/
+- **Letta:** <https://docs.letta.com/>
+- **Qdrant:** <https://qdrant.tech/documentation/>
+- **LangChain:** <https://python.langchain.com/docs/>
+- **n8n:** <https://docs.n8n.io/>
+- **NUKE:** <https://nuke.build/>
+- **Pre-commit:** <https://pre-commit.com/>
+- **GLM-4.6 (Zhipu):** <https://open.bigmodel.cn/dev/api>
+- **MCP (Model Context Protocol):** <https://modelcontextprotocol.io/>
 
 ### Related ChatGPT Discussion Topics
 

@@ -24,6 +24,7 @@ source:
 ## 🎯 Your Specific Choices
 
 ### 1. Central Hub
+
 **Name:** `lunar-snake-hub`
 
 **Rationale:** Perfect! Yearly naming convention (lunar-snake → lunar-horse → ...) prevents future conflicts.
@@ -35,6 +36,7 @@ source:
 ---
 
 ### 2. Pilot Satellite
+
 **Name:** `lablab-bean`
 
 **Current location:** `D:\lunar-snake\personal-work\yokan-projects\lablab-bean`
@@ -42,6 +44,7 @@ source:
 **GitHub:** `https://github.com/GiantCroissant-Lunar/lablab-bean`
 
 **Why this one:**
+
 - ✅ Already has `.agent/` folder structure
 - ✅ Already has `Taskfile.yml` (your preferred build tool)
 - ✅ Has `specs/` folder (specs-driven development)
@@ -50,6 +53,7 @@ source:
 - ✅ Active development
 
 **Architecture context:**
+
 - **Original 3-layer design:**
   - **infra-layer:** Foundation, build, report
   - **plate-layer:** General game dev packages (Unity packages)
@@ -59,6 +63,7 @@ source:
 ---
 
 ### 3. GitHub Organization
+
 **Type:** Organization
 
 **Name:** `GiantCroissant-Lunar`
@@ -70,17 +75,20 @@ source:
 ---
 
 ### 4. LLM & Embeddings
+
 **Provider:** GLM 4.6 (Zhipu/Z.ai)
 
 **Plan:** Coding plan subscription (`https://docs.z.ai/devpack/overview`)
 
 **Rate limits:**
+
 - GLM-4.6: 5 concurrent requests
 - Context length >8K: throttled to 1% of standard concurrency
 
 **Embeddings:** GLM embeddings (same provider, one API key)
 
 **BYOK endpoint:**
+
 ```bash
 OPENAI_API_KEY=<your_zhipu_jwt>
 OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
@@ -89,11 +97,13 @@ OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 ---
 
 ### 5. Networking
+
 **Method:** Tailscale VPN
 
 **Status:** ✅ Already installed on both Windows and Mac Mini
 
 **Advantage:**
+
 - Works anywhere (not just home network)
 - Secure by default
 - Easy DNS (use machine names)
@@ -103,9 +113,11 @@ OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 ---
 
 ### 6. CI/CD Strategy
+
 **Self-hosted runner:** NO
 
 **Rationale:**
+
 - Maximize use of GitHub's free public runner minutes
 - `lunar-snake-hub` will be public
 - Satellites can be public or private
@@ -116,9 +128,11 @@ OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 ---
 
 ### 7. Contract Tests
+
 **Decision:** **Phase 2** (My recommendation since you asked me to decide)
 
 **Rationale:**
+
 - ✅ Phase 1: Prove the hub/satellite model works first
 - ✅ Phase 2: Add contract tests after you have 1 working satellite
 - ✅ This avoids over-engineering before validating the core concept
@@ -129,6 +143,7 @@ OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 ---
 
 ### 8. Secrets Management
+
 **Method:** SOPS (encrypted in repo)
 
 **Reference implementation:** `C:\lunar-snake\personal-work\infra-projects\giantcroissant-lunar-ai\infra`
@@ -136,6 +151,7 @@ OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 **SOPS config example:** Found at `lablab-bean/ref-projects/winged-bean/infra/terraform/.sops.yaml`
 
 **Implementation:**
+
 ```yaml
 # lunar-snake-hub/infra/.sops.yaml
 creation_rules:
@@ -145,6 +161,7 @@ creation_rules:
 ```
 
 **Workflow:**
+
 ```bash
 # Encrypt
 sops encrypt secrets/mac-mini.yaml > secrets/mac-mini.enc.yaml
@@ -161,9 +178,11 @@ sops exec-env secrets/mac-mini.enc.yaml 'docker compose up -d'
 ---
 
 ### 9. Agent Rules Structure
+
 **Current:** `lablab-bean/.agent/` folder
 
 **Subfolders:**
+
 - `.agent/adapters/` - IDE adapter configs
 - `.agent/agents/` - Agent definitions
 - `.agent/base/` - Base rules/prompts
@@ -179,11 +198,13 @@ sops exec-env secrets/mac-mini.enc.yaml 'docker compose up -d'
 ---
 
 ### 10. Build Automation
+
 **Tool:** `task` (go-task, not make)
 
 **Current:** `lablab-bean/Taskfile.yml`
 
 **Example tasks:**
+
 ```yaml
 version: '3'
 tasks:
@@ -204,6 +225,7 @@ tasks:
 **Goal:** "Utilize agentic development as much as possible"
 
 **Current exploration:**
+
 - ❌ Tried spec-kit - "some limitations for just driven by spec"
 - 🔍 Exploring BMAD-METHOD (`https://github.com/bmad-code-org/BMAD-METHOD`)
 
@@ -237,6 +259,7 @@ tasks:
    - Add to `lunar-snake-hub/docs/methodologies/`
 
 **Workflow example:**
+
 ```
 1. Create RFC in hub: specs/inventory-system/v1.0/rfc.md
 2. Agent reads RFC + rules from hub
@@ -252,7 +275,8 @@ tasks:
 
 ## 📁 Your Actual File Structure (Based on lablab-bean)
 
-### Current lablab-bean structure:
+### Current lablab-bean structure
+
 ```
 lablab-bean/
 ├── .agent/                      # Will move to hub
@@ -272,7 +296,8 @@ lablab-bean/
 └── ...
 ```
 
-### After Phase 1 (lablab-bean as satellite):
+### After Phase 1 (lablab-bean as satellite)
+
 ```
 lablab-bean/
 ├── dotnet/                      # ✅ Code only
@@ -317,6 +342,7 @@ lablab-bean/
 ## 🎬 Phase 1 Action Plan (Updated for Your Setup)
 
 ### Prerequisites ✅
+
 - [x] Hub name decided: `lunar-snake-hub`
 - [x] Pilot satellite: `lablab-bean`
 - [x] GitHub org: `GiantCroissant-Lunar`
@@ -326,6 +352,7 @@ lablab-bean/
 ### Tasks (4 hours)
 
 #### 1. Create `lunar-snake-hub` repo (30 min)
+
 ```bash
 # On GitHub: GiantCroissant-Lunar/lunar-snake-hub (public)
 # Clone locally
@@ -334,6 +361,7 @@ cd lunar-snake-hub
 ```
 
 **Initial structure:**
+
 ```
 lunar-snake-hub/
 ├── README.md
@@ -360,6 +388,7 @@ lunar-snake-hub/
 ```
 
 #### 2. Extract & move agent rules from lablab-bean (45 min)
+
 ```bash
 # Copy .agent/ structure to hub
 cp -r lablab-bean/.agent/* lunar-snake-hub/agents/
@@ -371,12 +400,14 @@ cp -r lablab-bean/.agent/* lunar-snake-hub/agents/
 ```
 
 #### 3. Extract NUKE common build (30 min)
+
 ```bash
 # Identify common NUKE targets from lablab-bean/.nuke/
 # Extract to lunar-snake-hub/nuke/Build.Common.cs
 ```
 
 #### 4. Create `.hub-manifest.toml` in lablab-bean (15 min)
+
 ```toml
 [hub]
 repo = "GiantCroissant-Lunar/lunar-snake-hub"
@@ -398,6 +429,7 @@ include = [
 ```
 
 #### 5. Add `hub:sync` task to Taskfile.yml (30 min)
+
 ```yaml
 # lablab-bean/Taskfile.yml
 
@@ -438,6 +470,7 @@ tasks:
 ```
 
 #### 6. Update .gitignore in lablab-bean (5 min)
+
 ```gitignore
 # Hub-synced content (runtime only)
 .hub-cache/
@@ -446,6 +479,7 @@ tasks:
 ```
 
 #### 7. Set up Letta on Mac Mini (30 min)
+
 ```bash
 # On Mac Mini
 mkdir -p ~/ctx-hub
@@ -478,6 +512,7 @@ curl http://localhost:5055/v1/health
 ```
 
 #### 8. Test hub sync in lablab-bean (45 min)
+
 ```bash
 # On Windows, in lablab-bean
 task hub:sync
@@ -516,6 +551,7 @@ ls -la .agent  # Should be symlink
 **Or use HTTP MCP tool directly:**
 
 Tool spec:
+
 ```json
 {
   "name": "letta_memory",
@@ -552,6 +588,7 @@ After 4 hours, you should have:
 - [x] Agent can store/retrieve a decision via Letta
 
 **Test:**
+
 1. Open lablab-bean in VS Code
 2. Run `task hub:sync`
 3. Ask agent: "What are our naming conventions?" (should read from hub)
@@ -647,6 +684,7 @@ additional_notes: |
 ## 🚦 Ready to Start?
 
 **You now have:**
+
 - ✅ All decisions made
 - ✅ Clear understanding of your current setup (`lablab-bean`)
 - ✅ Concrete Phase 1 action plan (4 hours)
@@ -656,6 +694,7 @@ additional_notes: |
 **When you're ready:**
 
 Option 1: **Start Phase 1 now**
+
 ```bash
 # 1. Create lunar-snake-hub repo on GitHub
 # 2. Come back here and say: "Let's start Phase 1"
@@ -663,12 +702,14 @@ Option 1: **Start Phase 1 now**
 ```
 
 Option 2: **Wait for a good time block**
+
 ```bash
 # Move these docs to safe location
 # Schedule Phase 1 for next weekend
 ```
 
 Option 3: **Ask questions first**
+
 ```bash
 # Clarify anything before starting
 ```

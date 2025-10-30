@@ -15,6 +15,7 @@ source:
 ---
 
 # Phase 1 Implementation Checklist
+
 **Target:** 4 hours | **Pilot:** lablab-bean | **Hub:** lunar-snake-hub
 
 ---
@@ -33,13 +34,15 @@ source:
 ### 1️⃣ Create Hub Repo (30 min)
 
 **GitHub:**
-- [ ] Go to https://github.com/organizations/GiantCroissant-Lunar/repositories/new
+
+- [ ] Go to <https://github.com/organizations/GiantCroissant-Lunar/repositories/new>
 - [ ] Name: `lunar-snake-hub`
 - [ ] Visibility: **Public**
 - [ ] Initialize with README
 - [ ] Create
 
 **Local setup:**
+
 ```bash
 cd C:\lunar-snake\personal-work\
 git clone https://github.com/GiantCroissant-Lunar/lunar-snake-hub.git
@@ -47,6 +50,7 @@ cd lunar-snake-hub
 ```
 
 **Create structure:**
+
 ```bash
 mkdir -p agents/rules agents/prompts agents/adapters
 mkdir -p nuke specs precommit/hooks infra/secrets docs
@@ -54,6 +58,7 @@ touch .gitignore README.md
 ```
 
 **`.gitignore`:**
+
 ```
 # Secrets (use SOPS encrypted versions)
 *.env
@@ -66,6 +71,7 @@ touch .gitignore README.md
 ```
 
 **Commit:**
+
 ```bash
 git add .
 git commit -m "feat: initial hub structure"
@@ -77,6 +83,7 @@ git push
 ### 2️⃣ Extract Agent Rules from lablab-bean (45 min)
 
 **Explore current structure:**
+
 ```bash
 cd D:\lunar-snake\personal-work\yokan-projects\lablab-bean\.agent
 ls -la
@@ -84,6 +91,7 @@ ls -la
 ```
 
 **Copy to hub:**
+
 ```bash
 cd C:\lunar-snake\personal-work\lunar-snake-hub
 
@@ -101,11 +109,13 @@ cp -r ../yokan-projects/lablab-bean/.agent/scripts/* agents/scripts/
 ```
 
 **Organize (review and clean):**
+
 - [ ] Review `agents/rules/` - remove lablab-specific rules
 - [ ] Review `agents/prompts/` - generalize for any project
 - [ ] Review `agents/adapters/` - keep IDE-specific configs
 
 **Commit:**
+
 ```bash
 git add agents/
 git commit -m "feat: add agent rules from lablab-bean"
@@ -117,6 +127,7 @@ git push
 ### 3️⃣ Extract NUKE Common Build (30 min)
 
 **Check lablab-bean NUKE:**
+
 ```bash
 cd D:\lunar-snake\personal-work\yokan-projects\lablab-bean\.nuke
 ls -la
@@ -124,6 +135,7 @@ ls -la
 ```
 
 **Extract common:**
+
 ```bash
 cd C:\lunar-snake\personal-work\lunar-snake-hub\nuke
 
@@ -132,6 +144,7 @@ cd C:\lunar-snake\personal-work\lunar-snake-hub\nuke
 ```
 
 **Commit:**
+
 ```bash
 git add nuke/
 git commit -m "feat: add common NUKE build components"
@@ -143,11 +156,13 @@ git push
 ### 4️⃣ Create Hub Manifest in lablab-bean (15 min)
 
 **Create file:**
+
 ```bash
 cd D:\lunar-snake\personal-work\yokan-projects\lablab-bean
 ```
 
 **`.hub-manifest.toml`:**
+
 ```toml
 [hub]
 repo = "GiantCroissant-Lunar/lunar-snake-hub"
@@ -168,6 +183,7 @@ include = [
 ```
 
 **Update `.gitignore`:**
+
 ```gitignore
 # Add these lines
 .hub-cache/
@@ -175,6 +191,7 @@ include = [
 ```
 
 **Commit:**
+
 ```bash
 git add .hub-manifest.toml .gitignore
 git commit -m "feat: add hub manifest for lunar-snake-hub consumption"
@@ -186,6 +203,7 @@ git push
 ### 5️⃣ Add `hub:sync` Task (30 min)
 
 **Install dependencies (if needed):**
+
 ```bash
 # You need yq for TOML parsing
 # Windows: scoop install yq
@@ -193,6 +211,7 @@ git push
 ```
 
 **Edit `Taskfile.yml`:**
+
 ```yaml
 # Add to your existing lablab-bean/Taskfile.yml
 
@@ -242,18 +261,21 @@ tasks:
 ```
 
 **Test:**
+
 ```bash
 task hub:sync
 task hub:check
 ```
 
 **Verify:**
+
 ```bash
 ls -la .hub-cache/agents/rules/
 ls -la .agent  # Should be symlink
 ```
 
 **Commit:**
+
 ```bash
 git add Taskfile.yml
 git commit -m "feat: add hub sync tasks"
@@ -265,12 +287,14 @@ git push
 ### 6️⃣ Set Up Letta on Mac Mini (30 min)
 
 **SSH to Mac Mini:**
+
 ```bash
 ssh <your-mac-mini>
 # Or use Tailscale name: ssh <name>.tailscale.net
 ```
 
 **Create SOPS secret (on Windows first):**
+
 ```bash
 cd C:\lunar-snake\personal-work\lunar-snake-hub\infra\secrets
 
@@ -296,6 +320,7 @@ git push
 ```
 
 **On Mac Mini:**
+
 ```bash
 mkdir -p ~/ctx-hub
 cd ~/ctx-hub
@@ -334,12 +359,14 @@ curl http://localhost:5055/v1/health
 ```
 
 **Get Tailscale hostname:**
+
 ```bash
 tailscale status | grep $(hostname)
 # Note the hostname, e.g., mac-mini.tailscale.net
 ```
 
 **Test from Windows:**
+
 ```powershell
 # On Windows
 curl http://<mac-mini-tailscale-name>:5055/v1/health
@@ -350,10 +377,12 @@ curl http://<mac-mini-tailscale-name>:5055/v1/health
 ### 7️⃣ Configure Letta in Your IDE (15 min)
 
 **Find your MCP config location:**
+
 - Cline: VS Code settings → MCP Servers
 - Or `.mcp-config.json` in workspace
 
 **Add Letta tool:**
+
 ```json
 {
   "mcpServers": {
@@ -395,6 +424,7 @@ curl http://<mac-mini-tailscale-name>:5055/v1/health
 ### 8️⃣ Test Everything (45 min)
 
 #### Test 1: Hub Sync
+
 ```bash
 cd D:\lunar-snake\personal-work\yokan-projects\lablab-bean
 task hub:clean
@@ -402,6 +432,7 @@ task hub:sync
 ```
 
 **Expected:**
+
 ```
 ✅ Hub sync complete
    Agents: 15 rules
@@ -409,6 +440,7 @@ task hub:sync
 ```
 
 #### Test 2: Agent Reads Hub Rules
+
 1. Open `lablab-bean` in VS Code
 2. Start Cline/Roo/Kilo
 3. Ask: **"What are our naming conventions? Check the agent rules."**
@@ -417,6 +449,7 @@ task hub:sync
 **Success:** Agent finds and quotes rules from hub
 
 #### Test 3: Letta Memory (Basic)
+
 1. Ask agent: **"Remember this decision: We chose Repository pattern for data access because it decouples domain from infrastructure."**
 2. Agent should call Letta to save
 3. Restart VS Code
@@ -425,6 +458,7 @@ task hub:sync
 **Success:** Agent recalls from Letta memory
 
 #### Test 4: Update Hub, Re-sync
+
 1. Edit a rule in `lunar-snake-hub/agents/rules/`
 2. Commit and push
 3. In `lablab-bean`: `task hub:sync`
@@ -434,7 +468,7 @@ task hub:sync
 
 ---
 
-## ✅ Phase 1 Complete When:
+## ✅ Phase 1 Complete When
 
 - [ ] `lunar-snake-hub` repo exists with initial structure
 - [ ] Agent rules extracted from lablab-bean → hub
@@ -479,6 +513,7 @@ curl http://<mac-mini>.tailscale.net:5055/v1/health
 ## 🐛 Troubleshooting
 
 ### `task: command not found`
+
 ```bash
 # Install go-task
 # Windows: scoop install task
@@ -486,6 +521,7 @@ curl http://<mac-mini>.tailscale.net:5055/v1/health
 ```
 
 ### `yq: command not found`
+
 ```bash
 # Install yq
 # Windows: scoop install yq
@@ -493,6 +529,7 @@ curl http://<mac-mini>.tailscale.net:5055/v1/health
 ```
 
 ### Symlink fails on Windows
+
 ```bash
 # Run PowerShell as Admin
 # Or use junction instead:
@@ -500,6 +537,7 @@ cmd /c mklink /J .agent .hub-cache\agents
 ```
 
 ### Letta not accessible from Windows
+
 ```bash
 # Check Tailscale status
 tailscale status
@@ -509,6 +547,7 @@ tailscale status
 ```
 
 ### Hub sync shows no files
+
 ```bash
 # Check git clone worked
 ls .hub-cache/hub-repo
@@ -540,6 +579,7 @@ task hub:sync
 ## 🎓 What You Learned
 
 After Phase 1, you will have:
+
 - ✅ One source of truth for agent rules (hub)
 - ✅ Runtime sync pattern (no duplication in git)
 - ✅ Persistent memory across sessions (Letta)
@@ -553,12 +593,14 @@ After Phase 1, you will have:
 ## 🚀 After Phase 1
 
 **Use it for a week:**
+
 - Work on lablab-bean normally
 - Note when context burns / agents forget
 - Note if hub sync is smooth or annoying
 - Collect pain points
 
 **Then decide:**
+
 - Continue to Phase 2 (RAG) if context is still a problem
 - Scale to more satellites if Phase 1 is working well
 - Adjust hub structure based on learnings
@@ -568,6 +610,7 @@ After Phase 1, you will have:
 **Ready? Let's build this!** 🎯
 
 When you want to start, just say:
+
 - "Let's create the hub repo" (I'll guide step-by-step)
 - Or work through the checklist at your own pace
 
