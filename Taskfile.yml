@@ -233,6 +233,238 @@ tasks:
         exit 1
       fi
 
+  # === SOPS/Age Key Management Tasks ===
+
+  sops:rotate-key:
+    desc: Rotate age encryption key (use after key compromise)
+    cmds:
+    - |
+      echo "🔐 AGE Key Rotation"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo ""
+      echo "⚠️  WARNING: This will generate a NEW age key pair!"
+      echo ""
+      echo "Current key location: .sops/age.key"
+      echo "Old keys will be backed up with timestamp."
+      echo ""
+
+      # Check if the private key was committed
+      if git ls-files --error-unmatch .sops/age.key >/dev/null 2>&1; then
+        echo "❌ SECURITY ISSUE: .sops/age.key is currently tracked by git!"
+        echo ""
+        echo "This is a security vulnerability. The private key should NEVER be committed."
+        echo ""
+      else
+        echo "✅ Private key is not tracked by git (good!)"
+        echo ""
+      fi
+    - ansible-playbook infra/ansible/rotate_age_key_playbook.yml
+    - |
+      echo ""
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo "✨ Key rotation complete!"
+      echo ""
+      echo "📋 Next steps:"
+      echo "  1. Re-encrypt secrets: task sops:reencrypt"
+      echo "  2. Update CI/CD with new private key from .sops/age.key"
+      echo "  3. Commit changes: git add .sops.yaml .sops/age.pub"
+      echo "  4. Remove old key from git history: task sops:clean-history"
+
+  sops:reencrypt:
+    desc: Re-encrypt all SOPS files with new key
+    cmds:
+    - |
+      echo "🔍 Searching for SOPS-encrypted files..."
+
+      # Find all files that might be SOPS-encrypted
+      encrypted_files=$(find . -type f \( -name "*.yaml" -o -name "*.yml" -o -name "*.json" -o -name "*.env" \) \
+        -not -path "*/node_modules/*" \
+        -not -path "*/.git/*" \
+        -not -path "*/build/*" \
+        -not -path "*/.hub-cache/*" \
+        -exec grep -l "sops:" {} \; 2>/dev/null || true)
+
+      if [ -z "$encrypted_files" ]; then
+        echo "✅ No SOPS-encrypted files found!"
+        exit 0
+      fi
+
+      echo ""
+      echo "📋 Found the following encrypted files:"
+      echo "$encrypted_files"
+      echo ""
+
+      echo "🔄 Re-encrypting files..."
+      echo ""
+
+      failed_files=""
+      success_count=0
+
+      for file in $encrypted_files; do
+        echo "  Processing: $file"
+        if sops updatekeys "$file" 2>&1; then
+          echo "    ✅ Success"
+          success_count=$((success_count + 1))
+        else
+          echo "    ❌ Failed"
+          failed_files="$failed_files\n  - $file"
+        fi
+      done
+
+      echo ""
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo "📊 Summary:"
+      echo "  ✅ Successfully re-encrypted: $success_count files"
+
+      if [ -n "$failed_files" ]; then
+        echo ""
+        echo "❌ Failed files:"
+        echo -e "$failed_files"
+        exit 1
+      fi
+
+      echo ""
+      echo "✨ All files successfully re-encrypted with the new key!"
+      echo ""
+      echo "📝 Next steps:"
+      echo "  1. Review the changes: git diff"
+      echo "  2. Commit the re-encrypted files: git add . && git commit -m 'chore: re-encrypt secrets with new age key'"
+
+  sops:check-git:
+    desc: Check if age.key is tracked by git (security check)
+    cmds:
+    - |
+      echo "🔍 Checking git status of age key..."
+      echo ""
+
+      if git ls-files --error-unmatch .sops/age.key >/dev/null 2>&1; then
+        echo "❌ SECURITY ISSUE: .sops/age.key is tracked by git!"
+        echo ""
+        echo "The private key should NEVER be committed to git."
+        echo ""
+        echo "To fix this:"
+        echo "  1. Remove from git: git rm --cached .sops/age.key"
+        echo "  2. Rotate the key: task sops:rotate-key"
+        echo "  3. Clean git history: task sops:clean-history"
+        exit 1
+      else
+        echo "✅ Private key is NOT tracked by git (secure!)"
+        echo ""
+        echo "Checking git history for any previous commits..."
+
+        if git log --all --full-history -- .sops/age.key | grep -q "commit"; then
+          echo ""
+          echo "⚠️  WARNING: age.key found in git history!"
+          echo ""
+          echo "The key may have been previously committed."
+          echo "Even if removed now, it exists in git history."
+          echo ""
+          echo "To clean git history: task sops:clean-history"
+          exit 1
+        else
+          echo "✅ No age.key found in git history"
+        fi
+      fi
+
+  sops:clean-history:
+    desc: Remove age.key from git history (requires git-filter-repo)
+    cmds:
+    - |
+      echo "🗑️  Cleaning age.key from git history"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo ""
+      echo "⚠️  WARNING: This will rewrite git history!"
+      echo "⚠️  All collaborators must re-clone the repository!"
+      echo ""
+      echo "This operation requires: git-filter-repo"
+      echo ""
+
+      # Check if git-filter-repo is installed
+      if ! command -v git-filter-repo &> /dev/null; then
+        echo "❌ git-filter-repo is not installed"
+        echo ""
+        echo "Install with:"
+        echo "  brew install git-filter-repo"
+        echo ""
+        echo "Or use alternative:"
+        echo "  bfg --delete-files age.key"
+        exit 1
+      fi
+
+      read -p "Continue with history rewrite? (y/N): " -n 1 -r
+      echo
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "❌ Aborted."
+        exit 1
+      fi
+
+      echo ""
+      echo "🔄 Removing .sops/age.key from git history..."
+      git-filter-repo --path .sops/age.key --invert-paths --force
+
+      echo ""
+      echo "✅ Git history cleaned!"
+      echo ""
+      echo "📋 Next steps:"
+      echo "  1. Force push to remote: git push origin --force --all"
+      echo "  2. Notify all collaborators to re-clone the repository"
+      echo "  3. Rotate secrets and update CI/CD with new keys"
+
+  sops:decrypt:
+    desc: Decrypt secrets.enc.json to view contents
+    cmds:
+    - |
+      echo "🔓 Decrypting secrets.enc.json..."
+      sops decrypt infra/secrets/secrets.enc.json
+
+  sops:edit:
+    desc: Edit encrypted secrets file
+    cmds:
+    - |
+      echo "✏️  Opening encrypted secrets in $EDITOR..."
+      sops infra/secrets/secrets.enc.json
+
+  sops:info:
+    desc: Show SOPS configuration and key information
+    cmds:
+    - |
+      echo "🔐 SOPS Configuration"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo ""
+
+      if [ -f .sops.yaml ]; then
+        echo "📄 .sops.yaml:"
+        cat .sops.yaml
+        echo ""
+      else
+        echo "❌ .sops.yaml not found"
+        echo ""
+      fi
+
+      echo "🔑 Age Keys:"
+      echo ""
+
+      if [ -f .sops/age.pub ]; then
+        echo "Public key (.sops/age.pub):"
+        cat .sops/age.pub
+        echo ""
+      else
+        echo "❌ .sops/age.pub not found"
+        echo ""
+      fi
+
+      if [ -f .sops/age.key ]; then
+        echo "✅ Private key exists: .sops/age.key"
+        echo "   (Not displaying for security)"
+        echo ""
+      else
+        echo "❌ .sops/age.key not found"
+        echo ""
+      fi
+
+      echo "🔍 Git Status:"
+      task sops:check-git 2>&1 || true
+
   # === Pre-commit Tasks ===
 
   pre-commit:install:

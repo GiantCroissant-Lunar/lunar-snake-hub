@@ -1,10 +1,31 @@
-creation_rules:
-  # Encrypt all files matching secrets/*.enc.* pattern
-  - path_regex: infra/secrets/.*\.enc\..*$
-    age: >-
-      {{ age_public_key.stdout }}
+# Project-scoped SOPS configuration
+# Uses age key at .sops/age.key (project-level, not global)
 
-  # Encrypt environment files
-  - path_regex: infra/docker/\.env\.enc$
-    age: >-
-      {{ age_public_key.stdout }}
+# Tell SOPS where to find the private key for decryption
+# This makes the key project-scoped instead of ~/.config/sops/age/keys.txt
+key_file: .sops/age.key
+
+creation_rules:
+  # Encrypt secrets.json in infra/secrets/ directory (forward slash)
+- path_regex: infra/secrets/secrets\.json$
+  age: {{ age_public_key }}
+
+  # Encrypt secrets.json in infra\secrets\ directory (backslash for Windows)
+- path_regex: infra\\secrets\\secrets\.json$
+  age: {{ age_public_key }}
+
+  # Encrypt any .enc.json file (catch-all for JSON secrets)
+- path_regex: .*\.enc\.json$
+  age: {{ age_public_key }}
+
+  # Encrypt any .enc.yaml file (catch-all for YAML secrets)
+- path_regex: .*\.enc\.yaml$
+  age: {{ age_public_key }}
+
+  # Encrypt Docker environment files
+- path_regex: .*\.env\.enc$
+  age: {{ age_public_key }}
+
+  # Legacy: Encrypt root secrets directory files
+- path_regex: secrets/.*\.(enc\.yaml|env)$
+  age: {{ age_public_key }}

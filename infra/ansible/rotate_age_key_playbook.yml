@@ -1,0 +1,30 @@
+# Playbook specifically for rotating compromised age keys
+# Usage: ansible-playbook infra/ansible/rotate_age_key_playbook.yml
+
+- name: Rotate compromised age key for SOPS
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+  - vars/config.yml
+
+  tasks:
+  - name: Verify age is installed
+    command: age --version
+    register: age_version
+    changed_when: false
+    failed_when: age_version.rc != 0
+
+  - name: Create .sops directory if it doesn't exist
+    file:
+      path: '{{ hub_repo_path }}/.sops'
+      state: directory
+      mode: '0700'
+
+  - name: Check if age key exists
+    stat:
+      path: '{{ hub_repo_path }}/.sops/age.key'
+    register: age_key_stat
+
+  - name: Include key rotation tasks
+    include_tasks: roles/sops_setup/tasks/rotate_age_key.yml

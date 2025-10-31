@@ -120,7 +120,7 @@ def main() -> int:
 
     for task in tasks_sel:
         tid = task.get("id", "T-?")
-        print(f"\n=== Applying {tid}: {task.get('title','')} ===")
+        print(f"\n=== Applying {tid}: {task.get('title', '')} ===")
         patch_text = llm_propose_patch(args.repo, task, target)
         (target / "_proposed.patch").write_text(patch_text, encoding="utf-8")
 

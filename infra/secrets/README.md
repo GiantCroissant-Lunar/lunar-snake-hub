@@ -1,6 +1,28 @@
 # 🔐 Secrets Management for lunar-snake-hub
 
-This directory contains scripts for managing encrypted secrets using SOPS and age.
+This directory contains scripts and documentation for managing encrypted secrets using SOPS and age.
+
+## 📁 Directory Structure
+
+```
+infra/secrets/
+├── README.md                       # This file - secrets management guide
+├── config.json                     # Plain configuration (not sensitive)
+├── secrets.enc.json                # Encrypted secrets (SAFE to commit)
+│
+├── schemas/                        # JSON schemas for validation
+│   ├── config.schema.json
+│   └── secrets.schema.json
+│
+└── scripts/                        # Age key management scripts
+    ├── rotate-key-now.sh          # Quick age key rotation
+    ├── rotate-secret-values.sh    # Interactive secret values rotation
+    ├── finish-key-rotation.sh     # Complete rotation workflow
+    └── rotate-age-key.sh          # Full Ansible-based rotation
+
+Documentation:
+└── See ../../docs/security/ for detailed guides
+```
 
 ## 📋 Overview
 

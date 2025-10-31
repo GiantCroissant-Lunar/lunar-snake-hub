@@ -34,6 +34,7 @@ This infrastructure supports the lunar-snake-hub architecture with:
 **Task = Operations** (manage services, deploy, monitor)
 
 This separation ensures:
+
 - Ansible runs once to provision the Mac Mini
 - Task commands handle day-to-day operations
 - Clean separation of concerns
@@ -273,6 +274,7 @@ task infra:reset         # Complete reset and restart
 ## 📚 Next Steps
 
 1. **Windows:** Configure secrets → `infra/secrets/`
+
    ```powershell
    cd infra\secrets
    # Edit config.json and secrets.json
@@ -280,16 +282,19 @@ task infra:reset         # Complete reset and restart
    ```
 
 2. **Mac Mini:** Provision with Ansible → `infra/ansible/`
+
    ```bash
    ansible-playbook -i inventory/hosts.yml playbook.yml
    ```
 
 3. **Mac Mini:** Deploy services with Task
+
    ```bash
    task infra:dev  # Setup + start + status
    ```
 
 4. **Test:** Access from Windows
+
    ```powershell
    curl http://juis-mac-mini:5055/v1/health
    ```

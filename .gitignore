@@ -3,6 +3,8 @@
 !*.enc.yaml
 .sops/age.key       # Private age key (project-scoped)
 !.sops/age.pub      # Public age key (can be committed)
+.sops/*.backup.*    # Backup files from key rotation
+.sops.yaml.backup.* # Backup SOPS config files
 
 # Local development
 .DS_Store

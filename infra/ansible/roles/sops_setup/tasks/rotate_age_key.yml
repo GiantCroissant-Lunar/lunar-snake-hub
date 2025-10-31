@@ -1,0 +1,81 @@
+# Task file for rotating/generating age keys for SOPS
+# This should be used when:
+# - Setting up a new environment
+# - Recovering from a compromised key
+# - Rotating keys as part of security policy
+
+- name: Backup existing age key (if exists)
+  copy:
+    src: '{{ hub_repo_path }}/.sops/age.key'
+    dest: '{{ hub_repo_path }}/.sops/age.key.backup.{{ ansible_date_time.iso8601_basic_short }}'
+    mode: '0600'
+  when: age_key_stat.stat.exists
+  ignore_errors: yes
+
+- name: Backup existing public key (if exists)
+  copy:
+    src: '{{ hub_repo_path }}/.sops/age.pub'
+    dest: '{{ hub_repo_path }}/.sops/age.pub.backup.{{ ansible_date_time.iso8601_basic_short }}'
+    mode: '0644'
+  when: age_key_stat.stat.exists
+  ignore_errors: yes
+
+- name: Generate new age key pair
+  shell: age-keygen
+  register: age_keygen_output
+  changed_when: true
+
+- name: Extract private key from age-keygen output
+  set_fact:
+    new_age_private_key: '{{ age_keygen_output.stdout }}'
+
+- name: Extract public key from age-keygen output
+  set_fact:
+    new_age_public_key: "{{ age_keygen_output.stdout | regex_search('age1[a-z0-9]+') }}"
+
+- name: Write new age private key to file
+  copy:
+    content: '{{ new_age_private_key }}'
+    dest: '{{ hub_repo_path }}/.sops/age.key'
+    mode: '0600'
+
+- name: Write new age public key to file
+  copy:
+    content: '# public key: {{ new_age_public_key }}\n'
+    dest: '{{ hub_repo_path }}/.sops/age.pub'
+    mode: '0644'
+
+- name: Update .sops.yaml with new public key
+  template:
+    src: sops.yaml.j2
+    dest: '{{ hub_repo_path }}/.sops.yaml'
+    mode: '0644'
+  vars:
+    age_public_key: '{{ new_age_public_key }}'
+
+- name: Display key rotation summary
+  debug:
+    msg: |
+      🔑 AGE KEY ROTATION COMPLETE!
+
+      ✅ New age key generated
+      ✅ Old keys backed up with timestamp
+      ✅ .sops.yaml updated with new public key
+
+      📋 New Public Key: {{ new_age_public_key }}
+
+      📁 Key Location: {{ hub_repo_path }}/.sops/age.key
+      📁 Public Key: {{ hub_repo_path }}/.sops/age.pub
+
+      ⚠️  IMPORTANT NEXT STEPS:
+      1. The OLD private key was COMPROMISED - consider it unsafe
+      2. Re-encrypt ALL SOPS-encrypted files with the new key
+      3. Update any CI/CD secrets with the new private key
+      4. Commit ONLY the .sops.yaml and .sops/age.pub (NOT age.key!)
+      5. Remove the compromised key from git history if committed
+
+      🔐 To re-encrypt files, run:
+         sops updatekeys <encrypted-file>
+
+      Or use the provided script:
+         ./infra/ansible/roles/sops_setup/files/reencrypt_all.sh

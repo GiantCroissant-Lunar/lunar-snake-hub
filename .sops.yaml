@@ -8,24 +8,24 @@ key_file: .sops/age.key
 creation_rules:
   # Encrypt secrets.json in infra/secrets/ directory (forward slash)
 - path_regex: infra/secrets/secrets\.json$
-  age: age1ydjyyu9m550m8dj22qag8qlk8ugh6n454tjezenmtra48tjaypeq5m3zj0
+  age: age1jgv3pfxe8a5nw4hnf2hwt4w6h0npwtgtj66xnl6fw7j49n5jr54qgfvagl
 
   # Encrypt secrets.json in infra\secrets\ directory (backslash for Windows)
 - path_regex: infra\\secrets\\secrets\.json$
-  age: age1ydjyyu9m550m8dj22qag8qlk8ugh6n454tjezenmtra48tjaypeq5m3zj0
+  age: age1jgv3pfxe8a5nw4hnf2hwt4w6h0npwtgtj66xnl6fw7j49n5jr54qgfvagl
 
   # Encrypt any .enc.json file (catch-all for JSON secrets)
 - path_regex: .*\.enc\.json$
-  age: age1ydjyyu9m550m8dj22qag8qlk8ugh6n454tjezenmtra48tjaypeq5m3zj0
+  age: age1jgv3pfxe8a5nw4hnf2hwt4w6h0npwtgtj66xnl6fw7j49n5jr54qgfvagl
 
   # Encrypt any .enc.yaml file (catch-all for YAML secrets)
 - path_regex: .*\.enc\.yaml$
-  age: age1ydjyyu9m550m8dj22qag8qlk8ugh6n454tjezenmtra48tjaypeq5m3zj0
+  age: age1jgv3pfxe8a5nw4hnf2hwt4w6h0npwtgtj66xnl6fw7j49n5jr54qgfvagl
 
   # Encrypt Docker environment files
 - path_regex: .*\.env\.enc$
-  age: age1ydjyyu9m550m8dj22qag8qlk8ugh6n454tjezenmtra48tjaypeq5m3zj0
+  age: age1jgv3pfxe8a5nw4hnf2hwt4w6h0npwtgtj66xnl6fw7j49n5jr54qgfvagl
 
   # Legacy: Encrypt root secrets directory files
 - path_regex: secrets/.*\.(enc\.yaml|env)$
-  age: age1ydjyyu9m550m8dj22qag8qlk8ugh6n454tjezenmtra48tjaypeq5m3zj0
+  age: age1jgv3pfxe8a5nw4hnf2hwt4w6h0npwtgtj66xnl6fw7j49n5jr54qgfvagl
