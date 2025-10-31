@@ -105,12 +105,12 @@ services:
     - NODE_ENV=production
     - GATEWAY_URL=http://gateway:5057
     ports:
-    - 3000:3000
+    - 3000:80
     depends_on:
     - gateway
     restart: unless-stopped
     healthcheck:
-      test: curl -f http://localhost:3000 || exit 1
+      test: curl -f http://localhost:80 || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
