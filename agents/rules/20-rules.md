@@ -190,3 +190,25 @@ Add changelog section to spec file documenting all versions and changes.
 **Rationale**: Maintains traceability between specifications and implementations while avoiding spec proliferation.
 
 ---
+
+## R-TOOL-004: Sequential Thinking MCP (Recommended)
+
+Agents SHOULD use the Sequential Thinking MCP server when available to record reasoning steps during development.
+
+**Suggested usage:**
+
+- After each meaningful action (plan, edit, run, test), append a step with: `{goal, action, result, next}`.
+- On failures, record the error in `result` and propose `next`.
+- Keep entries concise and non-blocking; skip if the tool is unavailable.
+
+ **Notes:**
+
+- This is a recommendation, not a requirement.
+- Tool name may appear as `sequential-thinking` in MCP; verify availability before calling.
+- Compatible with clients like Claude Code and Windsurf Cascade.
+
+ **Reference**: Client MCP configuration / server list
+
+ **Rationale**: Encourages transparent, auditable workflows across agents while remaining non-blocking.
+
+ ---
