@@ -34,10 +34,11 @@ if git diff --cached --name-only | grep -qE "\.sops/age\.key$"; then
     fi
 fi
 
-# 2. Check for AGE-SECRET-KEY string in staged content (exclude this script itself)
+# 2. Check for AGE-SECRET-KEY string in staged content (exclude this script and docs)
 # Allow deletions (lines starting with -) but block additions (lines starting with +)
+# Exclude security documentation that may reference old compromised keys
 echo "  Checking for private key content in staged changes..."
-if git diff --cached --  ':!precommit/checks/check-sops-security.sh' | grep "^+.*AGE-SECRET-KEY" | grep -qv "^+++"; then
+if git diff --cached -- ':!precommit/checks/check-sops-security.sh' ':!docs/security/*.md' | grep "^+.*AGE-SECRET-KEY" | grep -qv "^+++"; then
     echo -e "${RED}❌ ERROR: Found AGE-SECRET-KEY being added in staged changes!${NC}"
     echo ""
     echo "  This appears to be a private age encryption key."
