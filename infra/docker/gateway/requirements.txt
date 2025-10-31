@@ -12,51 +12,17 @@ aiohttp>=3.9.0
 qdrant-client>=1.7.0
 numpy>=1.24.0
 
-# AI/ML
+# AI/ML - Core only (Phase 2)
 openai>=1.3.0
 tiktoken>=0.5.0
-sentence-transformers>=2.2.2
-torch>=2.0.0
-rank-bm25>=0.2.2
-cross-encoder>=0.5.0
-scikit-learn>=1.3.0
 
-# Performance & Caching
+# Performance & Caching (Phase 3 - optional)
 redis>=5.0.0
-aioredis>=2.0.0
-prometheus-client>=0.17.0
-opentelemetry-api>=1.20.0
-opentelemetry-sdk>=1.20.0
-opentelemetry-instrumentation-fastapi>=0.41b0
-opentelemetry-instrumentation>=0.41b0
-opentelemetry-exporter-jaeger>=1.20.0
-
-# System Monitoring
-psutil>=5.9.0
-
-# Database Connection Pooling
-asyncpg>=0.29.0
-sqlalchemy[asyncio]>=2.0.23
 
 # Web & Real-time
-websockets>=11.0.3
 aiofiles>=23.2.0
-
-# Security & Validation
-cryptography>=41.0.0
-pyotp>=2.9.0
-
-# Data processing
-pandas>=2.1.0
 python-multipart>=0.0.6
 
 # Utilities
 python-dotenv>=1.0.0
 structlog>=23.1.0
-pathlib2>=2.3.7
-
-# Phase 4 - Advanced Analytics & Monitoring
-plotly>=5.15.0
-dash>=2.14.0
-bokeh>=3.2.0
-streamlit>=1.25.0

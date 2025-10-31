@@ -5,9 +5,8 @@ import os
 import logging
 from contextlib import asynccontextmanager
 
-from app.routers import ask, memory, notes, search, advanced_search
+from app.routers import ask, memory, notes, search
 from app.routers import webhooks
-from app.routers import performance
 from app.services.qdrant_client import QdrantClient
 from app.services.letta_client import LettaClient
 from app.services.embeddings import EmbeddingsService
@@ -19,7 +18,7 @@ from app.services.webhook_receiver import WebhookReceiver, WebhookProcessor
 from app.services.enhanced_indexing import EnhancedIndexingService
 from app.services.caching import CachingService, CacheConfig
 from app.services.connection_pool import PoolConfig, init_pool_service
-from app.services.performance_monitor import init_performance_monitor
+# Performance monitor removed in cleanup
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,7 +43,6 @@ webhook_processor = None
 # Performance optimization services
 cache_service = None
 pool_service = None
-performance_monitor = None
 
 
 @asynccontextmanager
@@ -53,7 +51,7 @@ async def lifespan(app: FastAPI):
     global qdrant_client, letta_client, embeddings_service, indexing_service
     global hybrid_search_service, semantic_chunking_service, reranking_service
     global enhanced_indexing_service, webhook_receiver, webhook_processor
-    global cache_service, pool_service, performance_monitor
+    global cache_service, pool_service
 
     logger.info("Starting Context Gateway...")
 
@@ -104,25 +102,11 @@ async def lifespan(app: FastAPI):
         qdrant_url=os.getenv("QDRANT_URL", "http://localhost:6333"),
     )
 
-    performance_monitor = await init_performance_monitor(
-        retention_hours=int(os.getenv("METRICS_RETENTION_HOURS", "24")),
-        max_metrics_per_type=int(os.getenv("MAX_METRICS_PER_TYPE", "10000")),
-    )
-
     # Initialize routers with services
     ask.init_services(embeddings_service, qdrant_client)
     memory.init_service(letta_client)
     search.init_services(embeddings_service, qdrant_client, indexing_service)
-    advanced_search.init_services(
-        embeddings_service,
-        qdrant_client,
-        indexing_service,
-        hybrid_search_service,
-        semantic_chunking_service,
-        reranking_service,
-    )
     webhooks.init_services(webhook_processor, enhanced_indexing_service)
-    performance.init_services(performance_monitor, pool_service, cache_service)
 
     # Test connections
     try:
@@ -213,20 +197,8 @@ app.include_router(
     search.router, prefix="/search", tags=["search"], dependencies=[Security(security)]
 )
 app.include_router(
-    advanced_search.router,
-    prefix="/advanced",
-    tags=["advanced-search"],
-    dependencies=[Security(security)],
-)
-app.include_router(
     webhooks.router, prefix="/webhooks", tags=["webhooks"]
 )  # Webhooks have their own auth
-app.include_router(
-    performance.router,
-    prefix="/performance",
-    tags=["performance"],
-    dependencies=[Security(security)],
-)
 
 
 # Root endpoint
@@ -241,9 +213,7 @@ async def root():
             "memory": "/memory",
             "notes": "/notes",
             "search": "/search",
-            "advanced": "/advanced",
             "webhooks": "/webhooks",
-            "performance": "/performance",
         },
     }
 
