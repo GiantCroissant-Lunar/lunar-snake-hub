@@ -15,24 +15,30 @@ NC='\033[0m' # No Color
 # Track if any issues found
 ISSUES_FOUND=0
 
-# 1. Check if .sops/age.key is being staged
+# 1. Check if .sops/age.key is being staged (but allow deletions)
 echo "  Checking for private key in staged files..."
 if git diff --cached --name-only | grep -qE "\.sops/age\.key$"; then
-    echo -e "${RED}❌ ERROR: SOPS private key (.sops/age.key) is staged!${NC}"
-    echo ""
-    echo "  This key must NEVER be committed to git."
-    echo "  It would compromise ALL encrypted secrets."
-    echo ""
-    echo "  To fix:"
-    echo "    git restore --staged .sops/age.key"
-    echo ""
-    ISSUES_FOUND=1
+    # Check if it's being deleted (which is OK) or added/modified (which is NOT OK)
+    if git diff --cached --diff-filter=D --name-only | grep -qE "\.sops/age\.key$"; then
+        echo -e "${GREEN}  ✓ Private key is being removed from git (good!)${NC}"
+    else
+        echo -e "${RED}❌ ERROR: SOPS private key (.sops/age.key) is staged!${NC}"
+        echo ""
+        echo "  This key must NEVER be committed to git."
+        echo "  It would compromise ALL encrypted secrets."
+        echo ""
+        echo "  To fix:"
+        echo "    git restore --staged .sops/age.key"
+        echo ""
+        ISSUES_FOUND=1
+    fi
 fi
 
 # 2. Check for AGE-SECRET-KEY string in staged content (exclude this script itself)
+# Allow deletions (lines starting with -) but block additions (lines starting with +)
 echo "  Checking for private key content in staged changes..."
-if git diff --cached --  ':!precommit/checks/check-sops-security.sh' | grep -q "AGE-SECRET-KEY"; then
-    echo -e "${RED}❌ ERROR: Found AGE-SECRET-KEY in staged changes!${NC}"
+if git diff --cached --  ':!precommit/checks/check-sops-security.sh' | grep "^+.*AGE-SECRET-KEY" | grep -qv "^+++"; then
+    echo -e "${RED}❌ ERROR: Found AGE-SECRET-KEY being added in staged changes!${NC}"
     echo ""
     echo "  This appears to be a private age encryption key."
     echo "  Private keys must never be committed."
@@ -45,13 +51,14 @@ if git diff --cached --  ':!precommit/checks/check-sops-security.sh' | grep -q "
     ISSUES_FOUND=1
 fi
 
-# 3. Check for age private key format (backup files, etc.)
+# 3. Check for age private key format (backup files, etc.) - but allow deletions
 echo "  Checking for age key file patterns..."
-if git diff --cached --name-only | grep -qE "age\.key(\.backup)?"; then
-    echo -e "${YELLOW}⚠️  WARNING: Found age key file pattern in staged files${NC}"
+AGE_KEY_FILES=$(git diff --cached --diff-filter=AM --name-only | grep -E "age\.key(\.backup)?" || true)
+if [ -n "$AGE_KEY_FILES" ]; then
+    echo -e "${YELLOW}⚠️  WARNING: Found age key file pattern being added/modified${NC}"
     echo ""
     echo "  Files matching 'age.key' pattern:"
-    git diff --cached --name-only | grep -E "age\.key(\.backup)?" | sed 's/^/    /'
+    echo "$AGE_KEY_FILES" | sed 's/^/    /'
     echo ""
     echo "  Verify these are not private keys!"
     echo ""
