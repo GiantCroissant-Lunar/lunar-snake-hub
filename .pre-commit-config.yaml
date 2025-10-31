@@ -65,7 +65,7 @@ repos:
   - id: detect-secrets
     name: Detect secrets in code
     args: [--baseline, .secrets.baseline]
-    exclude: ^(\.sops\.yaml|infra/secrets/.*\.enc\.yaml)$
+    exclude: ^(\.sops\.yaml|infra/secrets/.*\.enc\.json|infra/secrets/.*\.template\.json)$
 
   # === Conventional Commits ===
 - repo: https://github.com/compilerla/conventional-pre-commit
