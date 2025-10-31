@@ -10,36 +10,22 @@
   changed_when: false
   failed_when: age_version.rc != 0
 
-- name: Create SOPS age key directory
+- name: Create project .sops directory
   file:
-    path: '{{ sops_age_key_dir }}'
+    path: '{{ hub_repo_path }}/.sops'
     state: directory
     mode: '0700'
 
-- name: Check if age key exists
+- name: Check if project age key exists
   stat:
-    path: '{{ sops_age_key_file }}'
+    path: '{{ hub_repo_path }}/.sops/age.key'
   register: age_key_stat
 
 - name: Set age key file permissions (if exists)
   file:
-    path: '{{ sops_age_key_file }}'
+    path: '{{ hub_repo_path }}/.sops/age.key'
     mode: '0600'
   when: age_key_stat.stat.exists
-
-- name: Set SOPS_AGE_KEY_FILE environment variable in .zshrc
-  lineinfile:
-    path: '{{ ansible_env.HOME }}/.zshrc'
-    line: export SOPS_AGE_KEY_FILE="{{ sops_age_key_file }}"
-    create: yes
-    state: present
-
-- name: Set SOPS_AGE_KEY_FILE in .bash_profile
-  lineinfile:
-    path: '{{ ansible_env.HOME }}/.bash_profile'
-    line: export SOPS_AGE_KEY_FILE="{{ sops_age_key_file }}"
-    create: yes
-    state: present
 
 - name: Display SOPS setup status
   debug:
@@ -48,16 +34,18 @@
 
       🔐 SOPS version: {{ sops_version.stdout }}
       🔑 age version: {{ age_version.stdout }}
-      📂 Key directory: {{ sops_age_key_dir }}
-      📄 Key file: {{ sops_age_key_file }}
+      📁 Project key: {{ hub_repo_path }}/.sops/age.key
 
       {% if age_key_stat.stat.exists %}
-      ✅ age key found at {{ sops_age_key_file }}
+      ✅ Project age key found!
       {% else %}
-      ⚠️  age key NOT found!
+      ⚠️  Project age key NOT found!
 
-      You must copy your age key from Windows:
-      1. On Windows: C:\Users\User\.config\sops\age\keys.txt
-      2. Copy contents to Mac Mini: {{ sops_age_key_file }}
-      3. Set permissions: chmod 600 {{ sops_age_key_file }}
+      You must copy your age key from Windows to Mac Mini:
+      1. On Windows: Copy {{ hub_repo_path }}\.sops\age.key
+      2. On Mac Mini: Paste to {{ hub_repo_path }}/.sops/age.key
+      3. Set permissions: chmod 600 {{ hub_repo_path }}/.sops/age.key
+
+      The .sops.yaml file automatically uses this project-scoped key.
+      No environment variables needed!
       {% endif %}

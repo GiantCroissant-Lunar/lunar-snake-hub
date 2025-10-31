@@ -19,13 +19,16 @@ $config = Get-Content "config.json" | ConvertFrom-Json
 if ($Encrypted) {
     Write-Host "🔓 Decrypting secrets.enc.json..."
 
-    $keyFile = Join-Path $env:USERPROFILE ".config\sops\age\keys.txt"
+    # Verify project-scoped age key exists
+    $projectRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+    $keyFile = Join-Path $projectRoot ".sops\age.key"
+
     if (-not (Test-Path $keyFile)) {
         Write-Error "❌ Age key not found at: $keyFile"
         exit 1
     }
 
-    $env:SOPS_AGE_KEY_FILE = $keyFile
+    # No need to set env var - .sops.yaml references key file directly
 
     # Decrypt secrets from repo root
     $originalLocation = Get-Location

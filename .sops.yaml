@@ -1,3 +1,10 @@
+# Project-scoped SOPS configuration
+# Uses age key at .sops/age.key (project-level, not global)
+
+# Tell SOPS where to find the private key for decryption
+# This makes the key project-scoped instead of ~/.config/sops/age/keys.txt
+key_file: .sops/age.key
+
 creation_rules:
   # Encrypt secrets.json in infra/secrets/ directory (forward slash)
 - path_regex: infra/secrets/secrets\.json$

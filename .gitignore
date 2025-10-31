@@ -1,6 +1,8 @@
 # Secrets (use SOPS encrypted versions)
 *.env
 !*.enc.yaml
+.sops/age.key       # Private age key (project-scoped)
+!.sops/age.pub      # Public age key (can be committed)
 
 # Local development
 .DS_Store

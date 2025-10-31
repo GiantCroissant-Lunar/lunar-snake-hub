@@ -97,12 +97,10 @@ tasks:
     - |
       echo "📋 Generating .env from config.json + secrets.enc.json..."
       if [ "$(uname)" = "Darwin" ]; then
-        # Mac Mini: use bash/sh
-        export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+        # Mac Mini: .sops.yaml automatically uses project key at .sops/age.key
         cd ../../
         sops decrypt infra/secrets/secrets.enc.json > /tmp/secrets.json
-        # Merge config + secrets -> .env (simplified version)
-        # For full implementation, use Python/Node script
+        # Merge config + secrets -> .env
         echo "OPENAI_API_KEY=$(jq -r '.GLM.ApiKey' /tmp/secrets.json)" > infra/docker/.env
         echo "OPENAI_BASE_URL=$(jq -r '.GLM.BaseURL' infra/secrets/config.json)" >> infra/docker/.env
         echo "GATEWAY_TOKEN=$(jq -r '.Services.Gateway.Token' /tmp/secrets.json)" >> infra/docker/.env
@@ -110,7 +108,7 @@ tasks:
         echo "N8N_PASSWORD=$(jq -r '.Services.N8n.Password' /tmp/secrets.json)" >> infra/docker/.env
         rm /tmp/secrets.json
       else
-        # Windows: use PowerShell script
+        # Windows: use PowerShell script (.sops.yaml handles project key automatically)
         pwsh -File json-to-env.ps1 -Encrypted
       fi
       echo "✅ .env generated!"
