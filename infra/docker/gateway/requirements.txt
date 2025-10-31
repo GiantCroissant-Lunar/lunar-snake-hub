@@ -28,6 +28,7 @@ prometheus-client>=0.17.0
 opentelemetry-api>=1.20.0
 opentelemetry-sdk>=1.20.0
 opentelemetry-instrumentation-fastapi>=0.41b0
+opentelemetry-instrumentation>=0.41b0
 opentelemetry-exporter-jaeger>=1.20.0
 
 # System Monitoring
@@ -46,10 +47,16 @@ cryptography>=41.0.0
 pyotp>=2.9.0
 
 # Data processing
-pandas>=2.0.0
+pandas>=2.1.0
 python-multipart>=0.0.6
 
 # Utilities
 python-dotenv>=1.0.0
 structlog>=23.1.0
 pathlib2>=2.3.7
+
+# Phase 4 - Advanced Analytics & Monitoring
+plotly>=5.15.0
+dash>=2.14.0
+bokeh>=3.2.0
+streamlit>=1.25.0
