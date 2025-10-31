@@ -18,7 +18,7 @@ services:
     - 5055:5055
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5055/v1/health"]
+      test: curl -f http://localhost:5055/v1/health || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
@@ -35,7 +35,7 @@ services:
     - 6334:6334      # gRPC
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      test: curl -f http://localhost:6333/healthz || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
