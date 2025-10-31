@@ -64,6 +64,19 @@ services:
     - 5057:5057
     restart: unless-stopped
 
+  # Phase 2: MCP Server (Model Context Protocol)
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: lunar-mcp-server
+    environment:
+    - GATEWAY_URL=http://gateway:5057
+    - GATEWAY_TOKEN=${GATEWAY_TOKEN}
+    depends_on:
+    - gateway
+    restart: unless-stopped
+
   # Phase 3: n8n (Workflow Automation)
   n8n:
     image: n8nio/n8n:latest
