@@ -1,0 +1,27 @@
+version: '3'
+
+tasks:
+  hub:sync:
+    desc: Sync assets from lunar-snake-hub
+    cmds:
+    - mkdir -p .hub-cache
+    - cd .hub-cache && rm -rf hub-repo && git clone https://github.com/GiantCroissant-Lunar/lunar-snake-hub hub-repo
+    - cd .hub-cache && rsync -av hub-repo/agents/ agents/ 2>/dev/null || echo "Sync completed"
+    - cd .hub-cache && rsync -av hub-repo/nuke/ nuke/ 2>/dev/null || echo "Sync completed"
+    silent: false
+
+  hub:check:
+    desc: Check hub cache status
+    cmds:
+    - echo "Checking hub cache..."
+    - test -d .hub-cache && echo "Hub cache present" || echo "Hub cache missing"
+    - test -d .hub-cache/agents && echo "Agents directory found" || echo "Agents not found"
+    - test -d .hub-cache/nuke && echo "NUKE directory found" || echo "NUKE not found"
+    silent: false
+
+  hub:clean:
+    desc: Clean hub cache
+    cmds:
+    - rm -rf .hub-cache
+    - echo "Hub cache cleaned"
+    silent: false
