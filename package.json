@@ -1,0 +1,22 @@
+{
+  "name": "@giantcroissant-lunar/lunar-snake-hub",
+  "version": "0.1.0",
+  "description": "Agent rules, pre-commit hooks, and shared tasks for Lunar Snake projects.",
+  "license": "UNLICENSED",
+  "files": [
+    "Taskfile.hub.yml",
+    "precommit/hooks",
+    "precommit/utils/install.ps1",
+    "precommit/utils/uninstall.ps1",
+    ".agent",
+    "docs/operations/DOGFOODING.md"
+  ],
+  "bin": {
+    "hub-install-hooks": "bin/hub-install-hooks.js",
+    "hub-uninstall-hooks": "bin/hub-uninstall-hooks.js"
+  },
+  "scripts": {
+    "postinstall": "node bin/hub-install-hooks.js",
+    "preuninstall": "node bin/hub-uninstall-hooks.js"
+  }
+}

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Check SOPS security - prevent private keys from being committed
 # This is a comprehensive check for age encryption key security
 

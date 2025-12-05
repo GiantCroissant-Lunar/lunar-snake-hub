@@ -74,14 +74,14 @@ repos:
   - id: conventional-pre-commit
     name: Validate conventional commit message
     stages: [commit-msg]
-    args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+    args: ['--types=feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert']
 
   # === Custom Hooks (local) ===
 - repo: local
   hooks:
   - id: check-sops-security
     name: Check SOPS age key security
-    entry: ./precommit/checks/check-sops-security.sh
+    entry: bash precommit/checks/check-sops-security.sh
     language: system
     pass_filenames: false
     always_run: true

@@ -40,24 +40,24 @@ tasks:
     deps: ['hub:clone']
     cmds:
     - mkdir -p {{.HUB_CACHE}}
-    - cp -r {{.HUB_CACHE}}/hub-repo/agents {{.HUB_CACHE}}/
+    - cp -r {{.HUB_CACHE}}/hub-repo/.agent {{.HUB_CACHE}}/
     - cp -r {{.HUB_CACHE}}/hub-repo/precommit {{.HUB_CACHE}}/
-    - echo "✅ Copied agents ({{.HUB_CACHE}}/agents/)"
+    - echo "✅ Copied .agent ({{.HUB_CACHE}}/.agent/)"
     - echo "✅ Copied precommit ({{.HUB_CACHE}}/precommit/)"
 
   hub:symlink:
-    desc: Create .agent symlink to agents/
+    desc: Create .agent symlink to .hub-cache/.agent/
     internal: true
     cmds:
     - |
       if [ -L {{.AGENT_SYMLINK}} ] || [ -e {{.AGENT_SYMLINK}} ]; then
         echo "ℹ️  {{.AGENT_SYMLINK}} already exists, skipping"
       else
-        echo "🔗 Creating {{.AGENT_SYMLINK}} -> agents/"
+        echo "🔗 Creating {{.AGENT_SYMLINK}} -> .hub-cache/.agent/"
         # Try Unix symlink first, fall back to Windows junction
-        ln -s agents {{.AGENT_SYMLINK}} 2>/dev/null || \
-          cmd /c "mklink /J {{.AGENT_SYMLINK}} agents" || \
-          echo "⚠️  Failed to create symlink, agents/ still accessible"
+        ln -s .hub-cache/.agent {{.AGENT_SYMLINK}} 2>/dev/null || \
+          cmd /c "mklink /J {{.AGENT_SYMLINK}} .hub-cache\\.agent" || \
+          echo "⚠️  Failed to create symlink for .agent"
       fi
 
   hub:check:
@@ -65,11 +65,11 @@ tasks:
     cmds:
     - |
       echo "📊 Hub Cache Status:"
-      if [ -d {{.HUB_CACHE}}/agents ]; then
-        AGENT_COUNT=$(find {{.HUB_CACHE}}/agents -type f -name "*.md" | wc -l)
-        echo "  ✅ Agents: $AGENT_COUNT files"
+      if [ -d {{.HUB_CACHE}}/.agent ]; then
+        AGENT_COUNT=$(find {{.HUB_CACHE}}/.agent -type f -name "*.md" | wc -l)
+        echo "  ✅ .agent: $AGENT_COUNT files"
       else
-        echo "  ❌ Agents: Not synced"
+        echo "  ❌ .agent: Not synced"
       fi
       if [ -d {{.HUB_CACHE}}/precommit ]; then
         echo "  ✅ Precommit: synced"
@@ -77,7 +77,7 @@ tasks:
         echo "  ❌ Precommit: Not synced"
       fi
       if [ -L {{.AGENT_SYMLINK}} ]; then
-        echo "  ✅ Symlink: {{.AGENT_SYMLINK}} -> agents/"
+        echo "  ✅ Symlink: {{.AGENT_SYMLINK}} -> .hub-cache/.agent/"
       else
         echo "  ⚠️  Symlink: Not created"
       fi
@@ -495,7 +495,7 @@ tasks:
       ERRORS=0
 
       # Check required directories
-      for dir in agents docs nuke precommit specs infra; do
+      for dir in .agent docs nuke precommit specs infra; do
         if [ ! -d "$dir" ]; then
           echo "  ❌ Missing directory: $dir"
           ERRORS=$((ERRORS + 1))
@@ -515,8 +515,8 @@ tasks:
       done
 
       # Check agent rules
-      RULE_COUNT=$(find agents/rules -name "*.md" 2>/dev/null | wc -l)
-      echo "  📋 Agent rules: $RULE_COUNT files"
+      RULE_COUNT=$(find .agent/rules -name "*.md" 2>/dev/null | wc -l)
+      echo "  📋 Agent rules (.agent/rules): $RULE_COUNT files"
 
       if [ $ERRORS -gt 0 ]; then
         echo ""
@@ -537,8 +537,8 @@ tasks:
       # Check for required agent files
       REQUIRED_RULES="00-index.md 10-principles.md 20-rules.md 30-glossary.md"
       for rule in $REQUIRED_RULES; do
-        if [ ! -f "agents/rules/$rule" ]; then
-          echo "  ❌ Missing required rule: agents/rules/$rule"
+        if [ ! -f ".agent/rules/$rule" ]; then
+          echo "  ❌ Missing required rule: .agent/rules/$rule"
           ERRORS=$((ERRORS + 1))
         else
           echo "  ✅ Rule exists: $rule"
@@ -546,11 +546,11 @@ tasks:
       done
 
       # Check for README files
-      if [ ! -f "agents/README.md" ]; then
-        echo "  ❌ Missing agents/README.md"
+      if [ ! -f ".agent/README.md" ]; then
+        echo "  ❌ Missing .agent/README.md"
         ERRORS=$((ERRORS + 1))
       else
-        echo "  ✅ agents/README.md exists"
+        echo "  ✅ .agent/README.md exists"
       fi
 
       if [ $ERRORS -gt 0 ]; then
@@ -739,7 +739,7 @@ tasks:
       echo "Repo: {{.HUB_REPO}}"
       echo ""
       echo "📁 Structure:"
-      echo "  - agents/     (agent rules & prompts)"
+      echo "  - .agent/     (agent configs: rules, skills, workflows, adapters)"
       echo "  - nuke/       (build components)"
       echo "  - precommit/  (pre-commit hooks)"
       echo "  - specs/      (specifications & RFCs)"
