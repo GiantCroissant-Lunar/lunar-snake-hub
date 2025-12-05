@@ -67,10 +67,10 @@ task hub:check
 
 ```bash
 # Check agent files exist
-ls .hub-cache/agents/rules/
+ls .hub-cache/.agent/rules/
 # Should show: 00-index.md, 10-principles.md, 20-rules.md, 30-glossary.md, 40-documentation.md
 
-ls .hub-cache/agents/adapters/
+ls .hub-cache/.agent/adapters/
 # Should show: claude.md, codex.md, copilot.md, gemini.md, kiro.md, windsurf.md
 
 ls .hub-cache/nuke/
@@ -78,14 +78,14 @@ ls .hub-cache/nuke/
 
 # Check symlink exists (on Unix-like systems)
 ls -la .agent
-# Should point to .hub-cache/agents/
+# Should point to .hub-cache/.agent/
 ```
 
 ### 1.3 Sync Validation
 
 ```bash
 # Verify file contents
-cat .hub-cache/agents/rules/20-rules.md | head -20
+cat .hub-cache/.agent/rules/20-rules.md | head -20
 # Should contain actual rule content, not placeholders
 
 # Verify NUKE build targets
@@ -112,7 +112,7 @@ grep -E "(Clean|Restore|Compile|Test)" .hub-cache/nuke/Build.Common.cs
 
 **Expected Response:**
 
-- Agent should reference `.hub-cache/agents/rules/20-rules.md`
+- Agent should reference `.hub-cache/.agent/rules/20-rules.md`
 - Should quote specific naming conventions
 - Should mention "hub" as source of rules
 
@@ -132,7 +132,7 @@ Ask: **"What are the specific guidelines for using Claude as an adapter?"**
 
 **Expected Response:**
 
-- Should reference `.hub-cache/agents/adapters/claude.md`
+- Should reference `.hub-cache/.agent/adapters/claude.md`
 - Should provide Claude-specific guidelines
 - Should mention adapter pattern
 
@@ -164,13 +164,13 @@ Ask: **"What are our guidelines for React development?"** (Not in rules)
 cd D:\lunar-snake\lunar-snake-hub
 
 # Edit a rule file
-nano agents/rules/20-rules.md
+nano .agent/rules/20-rules.md
 
 # Add a test rule at the end:
 # "TEST RULE: All test functions must start with 'test_' prefix"
 
 # Commit and push
-git add agents/rules/20-rules.md
+git add .agent/rules/20-rules.md
 git commit -m "test: add test rule for Phase 1 validation"
 git push
 ```
@@ -186,7 +186,7 @@ task hub:sync
 
 # Expected: Should show updated files
 # ✅ Hub sync complete
-# ✅ Updated: agents/rules/20-rules.md
+# ✅ Updated: .agent/rules/20-rules.md
 ```
 
 ### 3.3 Agent Sees Updated Rule
@@ -397,13 +397,13 @@ cat .hub-manifest.toml
 
 ```bash
 # Check cache exists
-ls -la .hub-cache/agents/rules/
+ls -la .hub-cache/.agent/rules/
 
 # Verify symlink
 ls -la .agent
 
 # Check file permissions
-cat .hub-cache/agents/rules/20-rules.md
+cat .hub-cache/.agent/rules/20-rules.md
 ```
 
 ### Letta Memory Issues

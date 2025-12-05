@@ -96,6 +96,8 @@ Add the following configuration to your MCP settings:
 }
 ```
 
+> Note: The `/v1/agents/...` segments above are **Letta HTTP API paths**. They are not related to your project's `.agent/` filesystem directory; the same word "agents" is coincidental.
+
 **IMPORTANT**: Replace `<mac-mini-tailscale-name>` with your actual Mac Mini Tailscale hostname (e.g., `mac-mini.tailscale.net`).
 
 ## Step 3: Verify Letta API Endpoints

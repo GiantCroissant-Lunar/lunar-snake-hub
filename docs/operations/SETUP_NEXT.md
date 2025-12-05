@@ -26,7 +26,7 @@ lunar-snake-hub/
 ├── .git/                   # Git initialized ✅
 ├── .gitignore             # Created ✅
 ├── README.md              # Hub overview ✅
-├── agents/                # Agent rules (empty, ready for content)
+├── .agent/                # Agent configs (empty, ready for content)
 │   └── README.md
 ├── nuke/                  # NUKE builds (empty, ready for content)
 │   └── README.md
@@ -175,7 +175,7 @@ ls docs/guides/
 # Should see all 5 docs
 
 # 4. Check structure
-ls agents/ nuke/ specs/ infra/
+ls .agent/ nuke/ specs/ infra/
 # Should see README.md in each
 ```
 

@@ -38,7 +38,7 @@ source:
 
 - `README.md` - Hub overview
 - `.gitignore` - Secrets and temp file exclusion
-- `agents/README.md`, `nuke/README.md`, `specs/README.md`, `infra/README.md`
+- `.agent/README.md`, `nuke/README.md`, `specs/README.md`, `infra/README.md`
 - Complete architecture documentation (5 docs in `docs/`)
 
 ---
@@ -48,11 +48,11 @@ source:
 **Status:** Complete
 **What was done:**
 
-- Copied `.agent/base/` → `lunar-snake-hub/agents/rules/` (5 files)
-- Copied `.agent/adapters/` → `lunar-snake-hub/agents/adapters/` (6 files)
-- Copied `.agent/agents/` → `lunar-snake-hub/agents/prompts/`
-- Copied `.agent/scripts/` → `lunar-snake-hub/agents/scripts/`
-- Copied `.agent/integrations/` → `lunar-snake-hub/agents/integrations/`
+- Copied `.agent/base/` → `lunar-snake-hub/.agent/rules/` (5 files)
+- Copied `.agent/adapters/` → `lunar-snake-hub/.agent/adapters/` (6 files)
+- Copied `.agent/agents/` → `lunar-snake-hub/.agent/prompts/`
+- Copied `.agent/scripts/` → `lunar-snake-hub/.agent/scripts/`
+- Copied `.agent/integrations/` → `lunar-snake-hub/.agent/integrations/`
 - Total: 17 files committed and pushed
 
 **Commit:**
@@ -116,11 +116,11 @@ precommit = "0.1.0"
 
 [sync]
 include = [
-    "agents/rules/**",
-    "agents/prompts/**",
-    "agents/adapters/**",
-    "agents/scripts/**",
-    "agents/integrations/**",
+    ".agent/rules/**",
+    ".agent/prompts/**",
+    ".agent/adapters/**",
+    ".agent/scripts/**",
+    ".agent/integrations/**",
     "nuke/**",
 ]
 ```
@@ -145,7 +145,7 @@ include = [
 cd lablab-bean
 task hub:sync
 # ✅ Cloned hub repo to .hub-cache/hub-repo
-# ✅ Synced 15 agent files to .hub-cache/agents/
+# ✅ Synced 15 agent files to .hub-cache/.agent/
 # ✅ Synced 1 NUKE file to .hub-cache/nuke/
 
 task hub:check
@@ -277,12 +277,16 @@ task hub:check
 1. Open `lablab-bean` in VS Code
 2. Start Cline/Roo/Kilo
 3. Ask: **"What are our naming conventions? Check the agent rules."**
-4. ✅ Agent should read from `.hub-cache/agents/rules/20-rules.md` or similar
-5. ✅ Agent should quote actual rules from the hub
+
+**Expected Response:**
+
+- Agent should reference `.hub-cache/.agent/rules/20-rules.md`
+ or similar
+- ✅ Agent should quote actual rules from the hub
 
 #### Test 3: Hub Rules Update → Sync → Agent Sees New Version
 
-1. Edit a rule in `lunar-snake-hub/agents/rules/20-rules.md`
+1. Edit a rule in `lunar-snake-hub/.agent/rules/20-rules.md`
 2. Commit and push the change
 3. In `lablab-bean`: `task hub:sync`
 4. Ask agent to read the updated rule

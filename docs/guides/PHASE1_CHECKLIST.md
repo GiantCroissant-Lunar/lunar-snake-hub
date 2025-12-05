@@ -52,7 +52,7 @@ cd lunar-snake-hub
 **Create structure:**
 
 ```bash
-mkdir -p agents/rules agents/prompts agents/adapters
+mkdir -p .agent/rules .agent/prompts .agent/adapters
 mkdir -p nuke specs precommit/hooks infra/secrets docs
 touch .gitignore README.md
 ```
@@ -96,28 +96,28 @@ ls -la
 cd C:\lunar-snake\personal-work\lunar-snake-hub
 
 # Copy base rules
-cp -r ../yokan-projects/lablab-bean/.agent/base/* agents/rules/
+cp -r ../yokan-projects/lablab-bean/.agent/base/* .agent/rules/
 
 # Copy agent prompts
-cp -r ../yokan-projects/lablab-bean/.agent/agents/* agents/prompts/
+cp -r ../yokan-projects/lablab-bean/.agent/agents/* .agent/prompts/
 
 # Copy adapters
-cp -r ../yokan-projects/lablab-bean/.agent/adapters/* agents/adapters/
+cp -r ../yokan-projects/lablab-bean/.agent/adapters/* .agent/adapters/
 
 # Copy any useful scripts
-cp -r ../yokan-projects/lablab-bean/.agent/scripts/* agents/scripts/
+cp -r ../yokan-projects/lablab-bean/.agent/scripts/* .agent/scripts/
 ```
 
 **Organize (review and clean):**
 
-- [ ] Review `agents/rules/` - remove lablab-specific rules
-- [ ] Review `agents/prompts/` - generalize for any project
-- [ ] Review `agents/adapters/` - keep IDE-specific configs
+- [ ] Review `.agent/rules/` - remove lablab-specific rules
+- [ ] Review `.agent/prompts/` - generalize for any project
+- [ ] Review `.agent/adapters/` - keep IDE-specific configs
 
 **Commit:**
 
 ```bash
-git add agents/
+git add .agent/
 git commit -m "feat: add agent rules from lablab-bean"
 git push
 ```
@@ -175,9 +175,9 @@ precommit = "0.1.0"
 
 [sync]
 include = [
-    "agents/rules/**",
-    "agents/prompts/**",
-    "agents/adapters/**",
+    ".agent/rules/**",
+    ".agent/prompts/**",
+    ".agent/adapters/**",
     "nuke/**",
 ]
 ```
@@ -230,17 +230,17 @@ tasks:
         fi
 
         # Sync to .hub-cache/
-        mkdir -p .hub-cache/agents .hub-cache/nuke
+        mkdir -p .hub-cache/.agent .hub-cache/nuke
 
-        cp -r .hub-cache/hub-repo/agents/* .hub-cache/agents/
+        cp -r .hub-cache/hub-repo/.agent/* .hub-cache/.agent/
         cp -r .hub-cache/hub-repo/nuke/* .hub-cache/nuke/
 
         # Create symlink for backward compat
         rm -rf .agent
-        ln -s .hub-cache/agents .agent
+        ln -s .hub-cache/.agent .agent
 
         echo "✅ Hub sync complete"
-        echo "   Agents: $(ls .hub-cache/agents/rules | wc -l) rules"
+        echo "   Agents: $(ls .hub-cache/.agent/rules | wc -l) rules"
         echo "   NUKE: $(ls .hub-cache/nuke | wc -l) files"
 
   hub:check:
@@ -270,7 +270,7 @@ task hub:check
 **Verify:**
 
 ```bash
-ls -la .hub-cache/agents/rules/
+ls -la .hub-cache/.agent/rules/
 ls -la .agent  # Should be symlink
 ```
 
@@ -444,7 +444,7 @@ task hub:sync
 1. Open `lablab-bean` in VS Code
 2. Start Cline/Roo/Kilo
 3. Ask: **"What are our naming conventions? Check the agent rules."**
-4. Agent should read from `.hub-cache/agents/rules/...` (or `.agent/...`)
+4. Agent should read from `.hub-cache/.agent/rules/...` (or `.agent/...`)
 
 **Success:** Agent finds and quotes rules from hub
 
@@ -459,7 +459,7 @@ task hub:sync
 
 #### Test 4: Update Hub, Re-sync
 
-1. Edit a rule in `lunar-snake-hub/agents/rules/`
+1. Edit a rule in `lunar-snake-hub/.agent/rules/`
 2. Commit and push
 3. In `lablab-bean`: `task hub:sync`
 4. Ask agent to read the updated rule
@@ -493,7 +493,7 @@ task hub:clean
 task hub:sync
 
 # 2. Check cache
-ls .hub-cache/agents/rules
+ls .hub-cache/.agent/rules
 ls .agent  # Should be symlink
 
 # 3. Test Letta from Windows

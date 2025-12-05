@@ -43,7 +43,7 @@ lunar-snake-hub/
 ├── README.md                          # Hub overview
 ├── SETUP_NEXT.md                      # Next steps guide
 ├── PHASE1_PROGRESS.md                 # Detailed progress (⭐ READ THIS)
-├── agents/                            # ✅ 17 files synced
+├── .agent/                            # ✅ 17 files synced (rules, adapters, prompts, scripts, integrations)
 │   ├── rules/                         # 5 base rule files
 │   ├── adapters/                      # 6 IDE adapters
 │   ├── prompts/                       # LangGraph prompts
@@ -71,7 +71,7 @@ lablab-bean/
 ├── .gitignore                         # ✅ Modified (ignores .hub-cache/)
 └── .hub-cache/                        # ✅ Synced (gitignored)
     ├── hub-repo/                      # Cloned hub repo
-    ├── agents/                        # 15 agent files
+    ├── .agent/                        # 15 agent files
     └── nuke/                          # 1 NUKE file
 ```
 
@@ -252,11 +252,11 @@ task hub:check
 
 - Open lablab-bean in VS Code
 - Ask agent: "What are our naming conventions?"
-- ✅ Agent should quote from `.hub-cache/agents/rules/20-rules.md`
+- ✅ Agent should quote from `.hub-cache/.agent/rules/20-rules.md`
 
 3. **Hub update propagation:**
 
-- Edit `lunar-snake-hub/agents/rules/20-rules.md`
+- Edit `lunar-snake-hub/.agent/rules/20-rules.md`
 - Commit & push
 - In lablab-bean: `task hub:sync`
 - Ask agent to read the updated rule
@@ -324,11 +324,11 @@ git push
 
 ### Architecture
 
-- **Hub:** Single source of truth (specs, agents, NUKE)
+- **Hub:** Single source of truth (specs, `.agent` configs, NUKE)
 - **Satellites:** Code + manifest only (`.hub-manifest.toml`)
 - **Sync:** Runtime (`task hub:sync`), not git submodules
 - **Cache:** `.hub-cache/` (gitignored)
-- **Backward compat:** `.agent/` symlink to `.hub-cache/agents/`
+- **Backward compat:** `.agent/` can be a symlink to `.hub-cache/.agent/` in satellites
 
 ---
 
@@ -439,12 +439,12 @@ docker compose restart letta
 
 ```bash
 # Verify cache exists
-ls .hub-cache/agents/rules/
+ls .hub-cache/.agent/rules/
 # Should show 5 .md files
 
 # Check symlink
 ls -la .agent
-# Should point to .hub-cache/agents/
+# Should point to .hub-cache/.agent/
 ```
 
 ### If Tailscale connection fails

@@ -82,7 +82,7 @@ npx -y @modelcontextprotocol/server-sequential-thinking --help
 # In Cline/Windsurf chat, ask:
 "Read the README.md file using filesystem tools"
 "Create a test file in docs/operations/"
-"List the contents of the agents/ directory"
+"List the contents of the .agent/ directory"
 ```
 
 ### Test Playwright

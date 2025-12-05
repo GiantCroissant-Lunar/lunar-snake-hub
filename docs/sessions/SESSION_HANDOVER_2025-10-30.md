@@ -39,7 +39,7 @@ source:
 | `DOGFOODING.md` | ✅ Created | Complete dogfooding documentation |
 | `.markdownlintrc` | ✅ Created | Markdown linting configuration |
 | `.secrets.baseline` | ✅ Created | Baseline for detect-secrets hook |
-| `.agent/` → `agents/` | ✅ Created | Junction for AI assistants (gitignored) |
+| `.agent/` | ✅ Created | Canonical agent config directory for AI assistants (gitignored) |
 | `.gitignore` | ✅ Updated | Added hub-specific patterns |
 
 **Key Tasks Available:**
@@ -106,8 +106,8 @@ task docs:all             # Run all doc checks
 
 **Excluded from Schema (15 files):**
 
-- Agent rules (agents/rules/*.md) - Operational content
-- Agent adapters (agents/adapters/*.md)
+- Agent rules (.agent/rules/*.md) - Operational content
+- Agent adapters (.agent/adapters/*.md)
 - Agent integrations/scripts
 - NUKE README
 
@@ -286,7 +286,7 @@ Tests include:
 ### Packs
 
 - `precommit/` - Universal hooks pack
-- `agents/` - Agent rules pack
+- `.agent/` - Agent rules pack
 - `nuke/` - Build components pack
 - `specs/` - Specifications (empty, ready for use)
 
@@ -295,7 +295,7 @@ Tests include:
 - `docs/index/registry.json` - Document registry
 - `docs/_inbox/` - Agent-generated docs staging
 - `docs/archive/` - Superseded docs
-- `.agent/` - Junction to agents/ (gitignored)
+- `.agent/` - Agent configs root (gitignored)
 
 ---
 

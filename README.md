@@ -41,14 +41,12 @@ Satellite repos (like `lablab-bean`) consume this hub via:
 
 ```
 lunar-snake-hub/
-├── agents/              # Agent rules, prompts, adapters
-│   ├── rules/          # Coding standards (R-CODE-*, R-DOC-*, etc.)
-│   ├── prompts/        # Agent prompt templates
-│   └── adapters/       # IDE-specific configs (Cline, Roo, etc.)
-├── nuke/               # NUKE build components
-│   ├── Build.Common.cs
-│   ├── Build.DotNet.cs
-│   └── Build.Unity.cs
+├── .agent/              # Agent configs (rules, skills, workflows, adapters)
+│   ├── rules/           # Coding standards & project rules
+│   ├── skills/          # Reusable skills
+│   ├── workflows/       # Orchestrated workflows
+│   ├── adapters/        # IDE-specific configs (Cline, Roo, etc.)
+│   └── scripts/         # Helper scripts for agent workflows
 ├── specs/              # Specifications & RFCs
 │   └── {domain}/
 │       └── v{version}/
@@ -84,7 +82,6 @@ repo = "GiantCroissant-Lunar/lunar-snake-hub"
 
 [packs]
 agents = "0.1.0"
-nuke = "0.1.0"
 precommit = "0.1.0"
 ```
 
@@ -103,8 +100,7 @@ tasks:
         else
           git -C .hub-cache/hub-repo pull
         fi
-        cp -r .hub-cache/hub-repo/agents .hub-cache/
-        cp -r .hub-cache/hub-repo/nuke .hub-cache/
+        cp -r .hub-cache/hub-repo/.agent .hub-cache/
         echo "✅ Hub sync complete"
 ```
 
@@ -121,8 +117,7 @@ tasks:
 
 ```bash
 task hub:sync
-# Agents now read from .hub-cache/agents/rules/
-# NUKE imports from .hub-cache/nuke/
+# Agents now read from .hub-cache/.agent/rules/
 ```
 
 ## 📚 Documentation
@@ -164,19 +159,85 @@ This hub supports a Mac Mini "brain" running:
 
 See `infra/README.md` for setup.
 
+## 🔧 NUKE Build Components
+
+This hub provides a generic NUKE build setup under `build/nuke/build/`:
+
+- `Build.cs` – NUKE entrypoint that composes reusable components.
+- `Components/` – generic interfaces like `IBuildConfig`, `IClean`, `IRestore`,
+  `ICompile`, `ITest`, `IPublish`.
+- `build.config.json` – JSON configuration that drives the components.
+
+Typical configuration (relative to repository root):
+
+```json
+{
+  "solutionPath": "dotnet/MySolution.sln",
+  "publishProjectPaths": [
+    "dotnet/MyApp/MyApp.csproj"
+  ]
+}
+```
+
+If `solutionPath` or `publishProjectPaths` are omitted or empty, the corresponding
+targets log a message and no-op instead of failing. This makes the components safe
+to copy into satellites and configure per-project.
+
+To reuse in a satellite repo:
+
+- Copy `build/nuke/build/Components/` and `build/nuke/build/Build.cs`.
+- Add a project-specific `build/nuke/build.config.json`.
+- Run `nuke Clean`, `nuke Restore`, `nuke Compile`, `nuke Test`, `nuke Publish`.
+
 ## 📦 Versioning
 
 Releases are tagged by pack type:
 
 - `packs-agents-v0.1.0` - Agent rules/prompts
-- `packs-nuke-v0.1.0` - NUKE build components
 - `packs-precommit-v0.1.0` - Pre-commit hooks
 - `spec-{domain}-v1.0.0` - Specification releases
+
+## 📦 npm Package Consumption
+
+Install into a consumer repo (runs hook installer automatically via `postinstall`):
+
+```powershell
+npm install @giantcroissant-lunar/lunar-snake-hub
+```
+
+Uninstall (runs cleanup via `preuninstall`, restores backups, unsets `core.hooksPath`):
+
+```powershell
+npm uninstall @giantcroissant-lunar/lunar-snake-hub
+```
+
+Manual hook install/uninstall:
+
+```powershell
+pwsh -File precommit\utils\install.ps1
+pwsh -File precommit\utils\uninstall.ps1 -Restore
+```
+
+Run end-to-end dogfood test:
+
+```powershell
+task -f Taskfile.hub.yml hub:dogfood:e2e
+```
+
+Include shared Taskfile fragment in consumer repos:
+
+```powershell
+task -f Taskfile.hub.yml hub:install-hooks
+```
+
+Notes:
+- Hub-installed hooks are marked with `# managed-by: lunar-snake-hub` and backed up prior to overwrite.
+- Uninstall removes only managed hooks and restores backups.
 
 ## 🤝 Contributing
 
 1. Create feature branch: `git checkout -b feat/new-agent-rule`
-2. Make changes to `agents/`, `nuke/`, etc.
+2. Make changes to `.agent/`, `precommit/`, `docs/`, etc.
 3. Update version in `registry/packs.toml` (if applicable)
 4. Commit: `git commit -m "feat: add new coding rule"`
 5. Push and open PR

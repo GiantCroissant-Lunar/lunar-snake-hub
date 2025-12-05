@@ -1,3 +1,26 @@
+# Dogfooding Checklist
+
+Use this checklist to validate `lunar-snake-hub` when consumed as a package.
+
+## Pre-commit Hooks
+- Install with: `pwsh -File precommit/utils/install.ps1`
+- Verify empty commit triggers hooks: `git commit --allow-empty -m "hook test"`
+- Confirm `git config --local core.hooksPath` is `.git/hooks`
+
+## Taskfile Import
+- Include `Taskfile.hub.yml` in consumer project and list tasks.
+- Run `task hub:install-hooks` and confirm success.
+
+## .agent Rules/Adapters
+- Ensure IDE integrations and agents reference `.agent/` as single source of truth.
+- Validate any adapter-specific setup in `.agent/adapters/README.md`.
+
+## Versioning
+- Consumer pins to a tag (e.g., `hub-v0.1.0`) or a published package version.
+- Record changes in release notes.
+
+## Notes
+- Capture pass/fail and any issues discovered.
 ---
 doc_id: DOC-2025-00003
 title: Dogfooding in lunar-snake-hub
@@ -31,13 +54,13 @@ This is called "dogfooding" (eating your own dog food).
 
 ## What We Dogfood
 
-### 1. Agent Rules via `.agent/` Symlink
+### 1. Agent Rules via `.agent/`
 
-**What:** The hub stores agent rules in `agents/rules/` and creates a `.agent/` junction pointing to `agents/`
+**What:** The hub stores agent rules in `.agent/rules/`. Satellites sync these rules into `.hub-cache/.agent/` and may create a `.agent/` junction pointing to that cache location for IDEs.
 
-**Why:** AI assistants (like Claude, Copilot, Windsurf) read from `.agent/` to understand coding standards. By creating this symlink, the hub uses its own rules when developers work on the hub itself.
+**Why:** AI assistants (like Claude, Copilot, Windsurf) read from `.agent/` to understand coding standards. By using `.agent/` consistently in both hub and satellites, agents see the same rule set everywhere.
 
-**Location:** `.agent/` → `agents/` (gitignored junction)
+**Location:** `.agent/` (gitignored directory, often a symlink to `.hub-cache/.agent/` in satellites)
 
 **Test:**
 
@@ -133,7 +156,7 @@ task ci                 # Run CI checks locally
 
 ```
 lunar-snake-hub/
-├── .agent/                     # ✅ Junction → agents/ (gitignored)
+├── .agent/                     # ✅ Agent configs (rules, skills, workflows, adapters)
 ├── .hub-manifest.toml          # ✅ Self-reference manifest
 ├── Taskfile.yml                # ✅ Task automation
 ├── .pre-commit-config.yaml     # ✅ Pre-commit hooks
@@ -141,7 +164,6 @@ lunar-snake-hub/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml              # ✅ CI automation
-├── agents/                     # Source of truth for agent rules
 ├── precommit/                  # Source of truth for pre-commit hooks
 ├── nuke/                       # Source of truth for NUKE components
 └── docs/                       # Documentation
@@ -180,7 +202,8 @@ lunar-snake-hub/
 ```bash
 cd D:\lunar-snake\lunar-snake-hub
 
-# 1. Check .agent symlink exists and works
+# 1. Check .agent directory exists and works
+# 1. Check .agent directory (or symlink) exists and works
 ls .agent/rules/
 
 # 2. Check pre-commit hooks installed
@@ -257,7 +280,7 @@ pre-commit install --hook-type commit-msg
 task validate:all
 
 # Common fixes:
-# - Missing agent rules in agents/rules/
+# - Missing agent rules in .agent/rules/
 # - Missing required files (README.md, .gitignore, etc.)
 ```
 
