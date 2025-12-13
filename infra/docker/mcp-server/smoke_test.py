@@ -29,6 +29,23 @@ def _chunk_text(text: str, chunk_lines: int = 200, overlap_lines: int = 20):
 
 def _iter_repo_files(repo_root: Path):
     ignored_dirs = {".git", ".venv", "venv", "node_modules", "bin", "obj", ".hub-cache"}
+    ignored_path_prefixes = {
+        "infra/secrets/",
+        ".sops/",
+    }
+    ignored_filenames = {
+        ".env",
+        ".env.example",
+    }
+    ignored_suffixes = {
+        ".key",
+        ".pem",
+        ".pfx",
+        ".p12",
+        ".crt",
+        ".cer",
+        ".der",
+    }
     allowed_exts = {
         ".md",
         ".txt",
@@ -56,6 +73,15 @@ def _iter_repo_files(repo_root: Path):
         if not path.is_file():
             continue
         if any(part in ignored_dirs for part in path.parts):
+            continue
+        rel = str(path.relative_to(repo_root)).replace("\\", "/")
+        if any(rel.startswith(prefix) for prefix in ignored_path_prefixes):
+            continue
+        if path.name in ignored_filenames:
+            continue
+        if path.name.startswith(".env."):
+            continue
+        if path.suffix.lower() in ignored_suffixes:
             continue
         if path.suffix.lower() not in allowed_exts:
             continue
@@ -142,6 +168,14 @@ def main() -> int:
         "--list-repo-keys",
         action="store_true",
         help="List unique repo_key values found in CONTEXT_COLLECTION.",
+    )
+    parser.add_argument(
+        "--purge-secrets-repo",
+        default=None,
+        help=(
+            "Delete indexed points that belong to infra/secrets (and similar) for the given repo path. "
+            "Use this if you accidentally indexed secrets before adding excludes."
+        ),
     )
     parser.add_argument(
         "--from-windsurf-config",
@@ -272,6 +306,55 @@ def main() -> int:
                 break
         for rk in sorted(seen):
             print(f"  {rk}")
+
+    if args.purge_secrets_repo:
+        repo_root = Path(args.purge_secrets_repo).expanduser().resolve()
+        import hashlib
+        from qdrant_client.http import models as qmodels
+
+        repo_key = (
+            f"{repo_root.name}-"
+            f"{hashlib.sha1(str(repo_root).encode('utf-8')).hexdigest()[:10]}"
+        )
+
+        print("\nPurging indexed secrets:")
+        print(f"  repo_key: {repo_key}")
+
+        selector_ids = []
+        offset = None
+        while True:
+            points, offset = qc.scroll(
+                collection_name=context_collection,
+                limit=256,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+                scroll_filter=qmodels.Filter(
+                    must=[
+                        qmodels.FieldCondition(
+                            key="repo_key", match=qmodels.MatchValue(value=repo_key)
+                        )
+                    ]
+                ),
+            )
+            for p in points:
+                payload = p.payload or {}
+                file_path = (payload.get("file_path") or "").replace("\\", "/")
+                if file_path.startswith("infra/secrets/") or file_path.startswith(
+                    ".sops/"
+                ):
+                    selector_ids.append(p.id)
+            if not offset:
+                break
+
+        if not selector_ids:
+            print("  no secret points found")
+        else:
+            qc.delete(
+                collection_name=context_collection,
+                points_selector=qmodels.PointIdsList(points=selector_ids),
+            )
+            print(f"  deleted: {len(selector_ids)}")
 
     if args.index_repo:
         repo_root = Path(args.index_repo).expanduser().resolve()

@@ -286,6 +286,23 @@ class ContextGatewayMCP:
             "obj",
             ".hub-cache",
         }
+        ignored_path_prefixes = {
+            "infra/secrets/",
+            ".sops/",
+        }
+        ignored_filenames = {
+            ".env",
+            ".env.example",
+        }
+        ignored_suffixes = {
+            ".key",
+            ".pem",
+            ".pfx",
+            ".p12",
+            ".crt",
+            ".cer",
+            ".der",
+        }
         allowed_exts = {
             ".md",
             ".txt",
@@ -313,6 +330,15 @@ class ContextGatewayMCP:
             if not path.is_file():
                 continue
             if any(part in ignored_dirs for part in path.parts):
+                continue
+            rel = str(path.relative_to(repo_root)).replace("\\", "/")
+            if any(rel.startswith(prefix) for prefix in ignored_path_prefixes):
+                continue
+            if path.name in ignored_filenames:
+                continue
+            if path.name.startswith(".env."):
+                continue
+            if path.suffix.lower() in ignored_suffixes:
                 continue
             if path.suffix.lower() not in allowed_exts:
                 continue
