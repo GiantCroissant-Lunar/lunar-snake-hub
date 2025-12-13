@@ -64,7 +64,7 @@ jobs:
 
     - name: Verify agent rules synced
       run: |
-        if [ ! -d .hub-cache/agents/rules ]; then
+        if [ ! -d .hub-cache/.agent/rules ]; then
           echo "❌ Agent rules not synced"
           exit 1
         fi
@@ -106,7 +106,7 @@ jobs:
           "docs/architecture/ARCHITECTURE_DISCUSSION.md"
           "docs/architecture/ARCHITECTURE_QUICK_REF.md"
           "docs/guides/PHASE1_CHECKLIST.md"
-          "agents/README.md"
+          ".agent/agents/README.md"
         )
         MISSING=0
         for doc in "${REQUIRED_DOCS[@]}"; do
