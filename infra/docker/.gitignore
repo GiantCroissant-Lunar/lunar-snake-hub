@@ -7,3 +7,28 @@ data/
 # Logs
 *.log
 *.txt
+
+# Python caches / venvs
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Test/coverage artifacts
+.coverage
+coverage/
+htmlcov/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary
+*.tmp
+*.bak
+*.swp
+*.swo

@@ -383,10 +383,10 @@ lunar-n8n:
 - Advanced visualizations
 - Component library
 
-**Location:** `infra/docker/frontend/` (24 files)
-**Status:** Partially implemented
+**Location:** `infra/docker/frontend/`
+**Status:** Not included (removed from repo)
 **Value:** Nice-to-have, not critical
-**Recommendation:** ⚠️ **KEEP but de-prioritize** (already built)
+**Recommendation:** ⏸️ **De-prioritize** (re-introduce later if needed)
 
 #### Phase 6: Advanced MCP Features
 
