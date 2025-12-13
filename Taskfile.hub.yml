@@ -4,20 +4,20 @@ tasks:
   hub:install-hooks:
     desc: Install pre-commit hooks from lunar-snake-hub into .git/hooks
     cmds:
-      - pwsh -File precommit/utils/install.ps1
+    - pwsh -File precommit/utils/install.ps1
 
   hub:lint:
     desc: Example lint aggregator (customize per consumer)
     cmds:
-      - echo "Run lint tasks here (extend in consumer repo)"
+    - echo "Run lint tasks here (extend in consumer repo)"
 
   hub:dogfood:check:
     desc: Run dogfooding checklist tasks
     cmds:
-      - task hub:install-hooks
-      - echo "Checklist: hooks installed, try an empty commit"
+    - task hub:install-hooks
+    - echo "Checklist: hooks installed, try an empty commit"
 
   hub:dogfood:e2e:
     desc: Automated install → verify → uninstall → verify
     cmds:
-      - pwsh -File precommit/utils/test-dogfood.ps1
+    - pwsh -File precommit/utils/test-dogfood-npm.ps1
