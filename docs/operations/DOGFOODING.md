@@ -1,26 +1,3 @@
-# Dogfooding Checklist
-
-Use this checklist to validate `lunar-snake-hub` when consumed as a package.
-
-## Pre-commit Hooks
-- Install with: `pwsh -File precommit/utils/install.ps1`
-- Verify empty commit triggers hooks: `git commit --allow-empty -m "hook test"`
-- Confirm `git config --local core.hooksPath` is `.git/hooks`
-
-## Taskfile Import
-- Include `Taskfile.hub.yml` in consumer project and list tasks.
-- Run `task hub:install-hooks` and confirm success.
-
-## .agent Rules/Adapters
-- Ensure IDE integrations and agents reference `.agent/` as single source of truth.
-- Validate any adapter-specific setup in `.agent/adapters/README.md`.
-
-## Versioning
-- Consumer pins to a tag (e.g., `hub-v0.1.0`) or a published package version.
-- Record changes in release notes.
-
-## Notes
-- Capture pass/fail and any issues discovered.
 ---
 doc_id: DOC-2025-00003
 title: Dogfooding in lunar-snake-hub
@@ -34,6 +11,37 @@ source:
   author: agent
   agent: claude
   model: sonnet-4.5
+---
+
+# Dogfooding Checklist
+
+Use this checklist to validate `lunar-snake-hub` when consumed as a package.
+
+## Pre-commit Hooks
+
+- Install with: `pwsh -File precommit/utils/install.ps1`
+- Verify empty commit triggers hooks: `git commit --allow-empty -m "hook test"`
+- Confirm `git config --local core.hooksPath` is `.git/hooks`
+
+## Taskfile Import
+
+- Include `Taskfile.hub.yml` in consumer project and list tasks.
+- Run `task hub:install-hooks` and confirm success.
+
+## .agent Rules/Adapters
+
+- Ensure IDE integrations and agents reference `.agent/` as single source of truth.
+- Validate any adapter-specific setup in `.agent/adapters/README.md`.
+
+## Versioning
+
+- Consumer pins to a tag (e.g., `hub-v0.1.0`) or a published package version.
+- Record changes in release notes.
+
+## Notes
+
+- Capture pass/fail and any issues discovered.
+
 ---
 
 # Dogfooding in lunar-snake-hub

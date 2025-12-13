@@ -15,7 +15,7 @@ source:
 
 # lunar-snake-hub
 
-**Central hub for lunar-snake projects** - Single source of truth for specs, agent rules, build components, and shared infrastructure.
+**Central hub for lunar-snake projects** - Single source of truth for specs, agent rules, and shared infrastructure.
 
 ## 🎯 Purpose
 
@@ -23,7 +23,6 @@ This repository provides:
 
 - **Specifications & RFCs** - API contracts, architecture decisions, design docs
 - **Agent Rules** - AI agent prompts, coding standards, best practices
-- **Build Components** - Reusable NUKE build targets for .NET/Unity projects
 - **Pre-commit Hooks** - Shared linting, formatting, security checks
 - **Infrastructure Templates** - Docker, Terraform, GitHub Actions
 
@@ -33,7 +32,7 @@ Satellite repos (like `lablab-bean`) consume this hub via:
 
 1. **`.hub-manifest.toml`** - Pins versions of packs to use
 2. **`task hub:sync`** - Fetches assets to `.hub-cache/` (gitignored)
-3. **Runtime access** - Agents read rules, builds use NUKE components
+3. **Runtime access** - Agents read rules; build orchestration is provided by the separate `unify-build` repository
 
 **Key principle:** Satellites commit only code + manifest. All shared assets are synced at runtime.
 
@@ -159,35 +158,11 @@ This hub supports a Mac Mini "brain" running:
 
 See `infra/README.md` for setup.
 
-## 🔧 NUKE Build Components
+## 🔧 Build System
 
-This hub provides a generic NUKE build setup under `build/nuke/build/`:
+Build orchestration and reusable NUKE components are now owned by the dedicated `unify-build` repository.
 
-- `Build.cs` – NUKE entrypoint that composes reusable components.
-- `Components/` – generic interfaces like `IBuildConfig`, `IClean`, `IRestore`,
-  `ICompile`, `ITest`, `IPublish`.
-- `build.config.json` – JSON configuration that drives the components.
-
-Typical configuration (relative to repository root):
-
-```json
-{
-  "solutionPath": "dotnet/MySolution.sln",
-  "publishProjectPaths": [
-    "dotnet/MyApp/MyApp.csproj"
-  ]
-}
-```
-
-If `solutionPath` or `publishProjectPaths` are omitted or empty, the corresponding
-targets log a message and no-op instead of failing. This makes the components safe
-to copy into satellites and configure per-project.
-
-To reuse in a satellite repo:
-
-- Copy `build/nuke/build/Components/` and `build/nuke/build/Build.cs`.
-- Add a project-specific `build/nuke/build.config.json`.
-- Run `nuke Clean`, `nuke Restore`, `nuke Compile`, `nuke Test`, `nuke Publish`.
+Satellite repos should use `unify-build` for all build pipelines and publish workflows; `lunar-snake-hub` no longer ships build scripts or NUKE components.
 
 ## 📦 Versioning
 
@@ -231,6 +206,7 @@ task -f Taskfile.hub.yml hub:install-hooks
 ```
 
 Notes:
+
 - Hub-installed hooks are marked with `# managed-by: lunar-snake-hub` and backed up prior to overwrite.
 - Uninstall removes only managed hooks and restores backups.
 
