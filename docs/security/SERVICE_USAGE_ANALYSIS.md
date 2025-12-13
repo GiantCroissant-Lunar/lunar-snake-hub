@@ -82,11 +82,11 @@ If you want to simplify and only keep what's actively used:
 {
   "$schema": "./schemas/config.schema.json",
   "GLM": {
-    "ApiKey": "0516bfd5e11f41e38d6e9ef7fa4eee7a.K3L1jwNQLkWBLrTM"
+    "ApiKey": "<REDACTED>"
   },
   "Services": {
     "N8n": {
-      "Password": "Ra9+1hA4dRc60seDsNPvWxInYP3VpYvy"
+      "Password": "<REDACTED>"
     }
   }
 }
@@ -120,11 +120,11 @@ cat > /tmp/secrets-minimal.json << 'EOF'
 {
   "$schema": "./schemas/config.schema.json",
   "GLM": {
-    "ApiKey": "0516bfd5e11f41e38d6e9ef7fa4eee7a.K3L1jwNQLkWBLrTM"
+    "ApiKey": "<REDACTED>"
   },
   "Services": {
     "N8n": {
-      "Password": "Ra9+1hA4dRc60seDsNPvWxInYP3VpYvy"
+      "Password": "<REDACTED>"
     }
   }
 }

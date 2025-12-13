@@ -11,17 +11,17 @@
 - **Old public key (COMPROMISED):** `age1ydjyyu9m550m8dj22qag8qlk8ugh6n454tjezenmtra48tjaypeq5m3zj0`
 - **New public key:** `age1jgv3pfxe8a5nw4hnf2hwt4w6h0npwtgtj66xnl6fw7j49n5jr54qgfvagl`
 
-### 2. Rotated ALL Secret Values ✅
+### 2. Rotated ALL Secret Values
 
 All credentials have been replaced with NEW values:
 
-- ✅ **GLM API Key** - New key from user
-- ✅ **GitHub Personal Access Token** - New token from user  
-- ✅ **GitHub Webhook Secret** - Generated: `b922a33ff2da304e1484671d126c6466bcf0f8ebef8a924215b81dc1cebbe233`
-- ✅ **Gateway Token** - Generated: `aQPY0XwHOB7n3IJWqHVqLUkDP5Yf9Zucdqy3NG1HHRA=`
-- ✅ **N8n Password** - Generated: `Ra9+1hA4dRc60seDsNPvWxInYP3VpYvy`
+- **GLM API Key** - New key from user
+- **GitHub Personal Access Token** - New token from user  
+- **GitHub Webhook Secret** - Generated: `[REDACTED]`
+- **Gateway Token** - Generated: `[REDACTED]`
+- **N8n Password** - Generated: `[REDACTED]`
 
-### 3. Re-encrypted with New Key ✅
+### 3. Re-encrypted with New Key
 
 - `infra/secrets/secrets.enc.json` - Encrypted with new age key
 - Verified decryption works

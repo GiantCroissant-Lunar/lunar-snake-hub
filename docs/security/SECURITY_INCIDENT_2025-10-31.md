@@ -10,7 +10,7 @@ A private age encryption key was accidentally committed to the git repository an
 
 ## Timeline
 
-- **2025-06-18:** Private key `AGE-SECRET-KEY-165LYMYX742PP7QCHK05C26UYKJM7V6PYEJHTVRQPPWMN7W8E77EQ0C09W5` was committed in commit `cd57ae1`
+- **2025-06-18:** Private key `AGE-SECRET-KEY-[REDACTED]` was committed in commit `cd57ae1`
 - **2025-10-31 15:21:** Issue discovered during repository cleanup
 - **2025-10-31 15:22:** Confirmed key was in remote repository history
 - **2025-10-31 15:23:** Git history rewritten using `git-filter-repo`
@@ -20,7 +20,7 @@ A private age encryption key was accidentally committed to the git repository an
 
 ```
 # Public key: age1ydjyyu9m550m8dj22qag8qlk8ugh6n454tjezenmtra48tjaypeq5m3zj0
-# Private key: AGE-SECRET-KEY-165LYMYX742PP7QCHK05C26UYKJM7V6PYEJHTVRQPPWMN7W8E77EQ0C09W5
+# Private key: AGE-SECRET-KEY-[REDACTED]
 # Created: 2025-06-18T16:03:39+08:00
 ```
 
@@ -55,7 +55,7 @@ All secrets encrypted with the old key must be re-encrypted with the new key:
 
 ```bash
 # 1. Decrypt with old key (if you still have it)
-export SOPS_AGE_KEY="AGE-SECRET-KEY-165LYMYX742PP7QCHK05C26UYKJM7V6PYEJHTVRQPPWMN7W8E77EQ0C09W5"
+export SOPS_AGE_KEY="AGE-SECRET-KEY-[REDACTED]"
 sops -d infra/secrets/secrets.enc.json > secrets.decrypted.json
 
 # 2. Re-encrypt with new key
