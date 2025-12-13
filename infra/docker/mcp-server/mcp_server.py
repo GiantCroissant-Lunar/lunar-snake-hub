@@ -6,6 +6,7 @@ and for agent memory operations (backed by Letta).
 """
 
 import asyncio
+import hashlib
 import logging
 import os
 import sys
@@ -36,6 +37,8 @@ class ContextGatewayMCP:
     def __init__(self):
         self.letta_url = os.getenv("LETTA_URL", "http://localhost:5055")
         self.qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+
+        self.context_collection = os.getenv("CONTEXT_COLLECTION", "hub-context")
 
         self.embedding_api_key = os.getenv("OPENAI_API_KEY")
         self.embedding_base_url = os.getenv(
@@ -74,7 +77,7 @@ class ContextGatewayMCP:
                             "properties": {
                                 "repo_id": {
                                     "type": "string",
-                                    "description": "Logical repository identifier (collection name)",
+                                    "description": "Optional override for the Qdrant collection name (defaults to CONTEXT_COLLECTION)",
                                 },
                                 "repo_path": {
                                     "type": "string",
@@ -86,7 +89,7 @@ class ContextGatewayMCP:
                                     "default": False,
                                 },
                             },
-                            "required": ["repo_id", "repo_path"],
+                            "required": ["repo_path"],
                         },
                     ),
                     Tool(
@@ -97,7 +100,7 @@ class ContextGatewayMCP:
                             "properties": {
                                 "repo_id": {
                                     "type": "string",
-                                    "description": "Logical repository identifier (collection name)",
+                                    "description": "Optional override for the Qdrant collection name (defaults to CONTEXT_COLLECTION)",
                                 },
                                 "query": {
                                     "type": "string",
@@ -113,8 +116,12 @@ class ContextGatewayMCP:
                                     "description": "Include content in results (default: true)",
                                     "default": True,
                                 },
+                                "repo_key": {
+                                    "type": "string",
+                                    "description": "Optional filter to only search within an indexed repo_key (returned in results)",
+                                },
                             },
-                            "required": ["repo_id", "query"],
+                            "required": ["query"],
                         },
                     ),
                     Tool(
@@ -123,6 +130,28 @@ class ContextGatewayMCP:
                         inputSchema={
                             "type": "object",
                             "properties": {},
+                            "required": [],
+                        },
+                    ),
+                    Tool(
+                        name="context_list_repo_keys",
+                        description=(
+                            "List repo_key values found in the shared context collection "
+                            "(useful for optional filtering)"
+                        ),
+                        inputSchema={
+                            "type": "object",
+                            "properties": {
+                                "repo_id": {
+                                    "type": "string",
+                                    "description": "Optional override for the Qdrant collection name (defaults to CONTEXT_COLLECTION)",
+                                },
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "Maximum unique repo_keys to return (default: 50)",
+                                    "default": 50,
+                                },
+                            },
                             "required": [],
                         },
                     ),
@@ -196,6 +225,8 @@ class ContextGatewayMCP:
                     return await self._context_search(arguments)
                 if name == "context_list_repos":
                     return await self._context_list_repos()
+                if name == "context_list_repo_keys":
+                    return await self._context_list_repo_keys(arguments)
                 if name == "memory_put":
                     return await self._memory_put(arguments)
                 if name == "memory_get":
@@ -332,7 +363,7 @@ class ContextGatewayMCP:
         await asyncio.to_thread(_call)
 
     async def _context_index_repo(self, args: Dict[str, Any]) -> CallToolResult:
-        repo_id = args["repo_id"]
+        repo_id = args.get("repo_id") or self.context_collection
         repo_path = Path(args["repo_path"])
         force_reindex = bool(args.get("force_reindex", False))
 
@@ -384,10 +415,14 @@ class ContextGatewayMCP:
         vector_size = len(embeddings[0]) if embeddings else 0
         await self._ensure_collection(repo_id, vector_size, force_reindex)
 
+        repo_key = self._repo_key(repo_path)
+
         points: List[qmodels.PointStruct] = []
         for (rel_path, start_line, end_line, content), vector in zip(docs, embeddings):
-            point_id = f"{rel_path}:{start_line}:{end_line}"
+            point_id = f"{repo_key}:{rel_path}:{start_line}:{end_line}"
             payload = {
+                "repo_key": repo_key,
+                "repo_path": str(repo_path),
                 "file_path": rel_path,
                 "start_line": start_line,
                 "end_line": end_line,
@@ -406,16 +441,20 @@ class ContextGatewayMCP:
             content=[
                 TextContent(
                     type="text",
-                    text=f"Indexed repo_id={repo_id}. Files/chunks indexed: {len(points)}",
+                    text=(
+                        f"Indexed collection={repo_id}. repo_key={repo_key}. "
+                        f"Files/chunks indexed: {len(points)}"
+                    ),
                 )
             ]
         )
 
     async def _context_search(self, args: Dict[str, Any]) -> CallToolResult:
-        repo_id = args["repo_id"]
+        repo_id = args.get("repo_id") or self.context_collection
         query = args["query"]
         top_k = int(args.get("top_k", 5))
         include_content = bool(args.get("include_content", True))
+        repo_key = args.get("repo_key")
 
         query_vec = (await self._embed_texts([query]))[0]
 
@@ -425,6 +464,17 @@ class ContextGatewayMCP:
                 query_vector=query_vec,
                 limit=top_k,
                 with_payload=True,
+                query_filter=(
+                    qmodels.Filter(
+                        must=[
+                            qmodels.FieldCondition(
+                                key="repo_key", match=qmodels.MatchValue(value=repo_key)
+                            )
+                        ]
+                    )
+                    if repo_key
+                    else None
+                ),
             )
 
         points = await asyncio.to_thread(_search)
@@ -432,14 +482,16 @@ class ContextGatewayMCP:
         lines: List[str] = []
         for p in points:
             payload = p.payload or {}
+            payload_repo_key = payload.get("repo_key")
             file_path = payload.get("file_path", "unknown")
             start_line = payload.get("start_line")
             end_line = payload.get("end_line")
             score = getattr(p, "score", None)
+            prefix = f"[{payload_repo_key}] " if payload_repo_key else ""
             header = (
-                f"{file_path}:{start_line}-{end_line} score={score:.4f}"
+                f"{prefix}{file_path}:{start_line}-{end_line} score={score:.4f}"
                 if score is not None
-                else f"{file_path}:{start_line}-{end_line}"
+                else f"{prefix}{file_path}:{start_line}-{end_line}"
             )
             lines.append(header)
             if include_content:
@@ -455,9 +507,51 @@ class ContextGatewayMCP:
         def _call() -> List[str]:
             return [c.name for c in self._qdrant.get_collections().collections]
 
-        repos = await asyncio.to_thread(_call)
-        text = "\n".join(repos) if repos else "(no indexed repos)"
+        collections = await asyncio.to_thread(_call)
+        text = "\n".join(collections) if collections else "(no collections)"
         return CallToolResult(content=[TextContent(type="text", text=text)])
+
+    async def _context_list_repo_keys(self, args: Dict[str, Any]) -> CallToolResult:
+        repo_id = args.get("repo_id") or self.context_collection
+        limit = int(args.get("limit", 50))
+
+        def _scroll_unique() -> List[Tuple[str, str]]:
+            unique: Dict[str, str] = {}
+            offset = None
+            while len(unique) < limit:
+                points, offset = self._qdrant.scroll(
+                    collection_name=repo_id,
+                    limit=256,
+                    offset=offset,
+                    with_payload=True,
+                    with_vectors=False,
+                )
+                for p in points:
+                    payload = p.payload or {}
+                    rk = payload.get("repo_key")
+                    rp = payload.get("repo_path")
+                    if rk and rk not in unique:
+                        unique[rk] = rp or ""
+                        if len(unique) >= limit:
+                            break
+                if not offset:
+                    break
+            return sorted(unique.items(), key=lambda kv: kv[0])
+
+        items = await asyncio.to_thread(_scroll_unique)
+        if not items:
+            return CallToolResult(
+                content=[TextContent(type="text", text="(no repo_keys found)")]
+            )
+
+        lines = [f"{rk}\t{rp}" if rp else rk for rk, rp in items]
+        return CallToolResult(content=[TextContent(type="text", text="\n".join(lines))])
+
+    def _repo_key(self, repo_path: Path) -> str:
+        resolved = str(repo_path.expanduser().resolve()).replace("\\", "/")
+        base = repo_path.name
+        digest = hashlib.sha1(resolved.encode("utf-8")).hexdigest()[:10]
+        return f"{base}-{digest}"
 
     async def _letta_request(
         self,
@@ -530,6 +624,7 @@ async def main():
     logger.info("Starting local Context MCP server")
     logger.info(f"LETTA_URL: {mcp_server.letta_url}")
     logger.info(f"QDRANT_URL: {mcp_server.qdrant_url}")
+    logger.info(f"CONTEXT_COLLECTION: {mcp_server.context_collection}")
     logger.info(f"MCP_REPO_ROOTS: {', '.join(str(p) for p in mcp_server.repo_roots)}")
 
     await mcp_server.run()
