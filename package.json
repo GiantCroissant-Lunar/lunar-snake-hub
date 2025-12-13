@@ -9,14 +9,15 @@
     "precommit/utils/install.ps1",
     "precommit/utils/uninstall.ps1",
     ".agent",
+    "scripts",
     "docs/operations/DOGFOODING.md"
   ],
   "bin": {
-    "hub-install-hooks": "bin/hub-install-hooks.js",
-    "hub-uninstall-hooks": "bin/hub-uninstall-hooks.js"
+    "hub-install-hooks": "scripts/hub-install-hooks.js",
+    "hub-uninstall-hooks": "scripts/hub-uninstall-hooks.js"
   },
   "scripts": {
-    "postinstall": "node bin/hub-install-hooks.js",
-    "preuninstall": "node bin/hub-uninstall-hooks.js"
+    "postinstall": "node scripts/hub-install-hooks.js",
+    "preuninstall": "node scripts/hub-uninstall-hooks.js"
   }
 }

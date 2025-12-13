@@ -14,21 +14,19 @@ function runPwsh(script, args = []) {
 try {
   const repoRoot = process.cwd();
   if (!existsSync(path.join(repoRoot, '.git'))) {
-    // Not a git repo; skip silently
     process.exit(0);
   }
   const packageRoot = path.resolve(__dirname, '..');
-  const script = path.join(packageRoot, 'precommit', 'utils', 'install.ps1');
-  const hooksSource = path.join(packageRoot, 'precommit', 'hooks');
+  const script = path.join(packageRoot, 'precommit', 'utils', 'uninstall.ps1');
   const hooksTarget = path.join(repoRoot, '.git', 'hooks');
   const backupDir = path.join(repoRoot, '.git', 'hooks.backup.hub');
-  
+
   runPwsh(script, [
-    '-HooksSource', hooksSource,
     '-HooksTarget', hooksTarget,
-    '-BackupDir', backupDir
+    '-BackupDir', backupDir,
+    '-Restore'
   ]);
 } catch (e) {
-  console.error('[hub] install failed:', e?.message || e);
+  console.error('[hub] uninstall failed:', e?.message || e);
   process.exit(1);
 }
