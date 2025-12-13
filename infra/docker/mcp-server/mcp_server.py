@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 MAX_EMBED_CHARS = 8_000
+MAX_CONTEXT_SNIPPET_CHARS = 1_200
 
 
 class ContextGatewayMCP:
@@ -49,6 +50,7 @@ class ContextGatewayMCP:
             "OPENAI_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"
         )
         self.embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+        self.chat_model = os.getenv("CHAT_MODEL", "gpt-4o-mini")
 
         self.repo_roots = self._parse_repo_roots(os.getenv("MCP_REPO_ROOTS", ""))
         if not self.repo_roots:
@@ -152,6 +154,49 @@ class ContextGatewayMCP:
                         },
                     ),
                     Tool(
+                        name="context_ask",
+                        description=(
+                            "Ask a natural-language question about indexed code/docs. "
+                            "The server runs vector search internally and synthesizes an answer with citations."
+                        ),
+                        inputSchema={
+                            "type": "object",
+                            "properties": {
+                                "repo_id": {
+                                    "type": "string",
+                                    "description": "Optional override for the Qdrant collection name (defaults to CONTEXT_COLLECTION)",
+                                },
+                                "question": {
+                                    "type": "string",
+                                    "description": "Question to answer",
+                                },
+                                "top_k": {
+                                    "type": "integer",
+                                    "description": "How many chunks to retrieve as evidence (default: 5)",
+                                    "default": 5,
+                                },
+                                "repo_key": {
+                                    "type": "string",
+                                    "description": "Optional filter to only search within an indexed repo_key",
+                                },
+                                "repo": {
+                                    "type": "string",
+                                    "description": "Optional friendly repo selector (e.g. 'mung-bean'). Server will resolve to a repo_key if possible.",
+                                },
+                                "repo_path": {
+                                    "type": "string",
+                                    "description": "Optional absolute repo path. If provided, server computes repo_key from it.",
+                                },
+                                "include_sources": {
+                                    "type": "boolean",
+                                    "description": "Include cited source locations (default: true)",
+                                    "default": True,
+                                },
+                            },
+                            "required": ["question"],
+                        },
+                    ),
+                    Tool(
                         name="context_list_repos",
                         description="List available context repositories (indexed collections)",
                         inputSchema={
@@ -250,6 +295,8 @@ class ContextGatewayMCP:
                     return await self._context_index_repo(arguments)
                 if name == "context_search":
                     return await self._context_search(arguments)
+                if name == "context_ask":
+                    return await self._context_ask(arguments)
                 if name == "context_list_repos":
                     return await self._context_list_repos()
                 if name == "context_list_repo_keys":
@@ -605,6 +652,114 @@ class ContextGatewayMCP:
         return CallToolResult(
             content=[TextContent(type="text", text="\n".join(lines) or "No results.")]
         )
+
+    async def _context_ask(self, args: Dict[str, Any]) -> CallToolResult:
+        repo_id = args.get("repo_id") or self.context_collection
+        question = args["question"]
+        top_k = int(args.get("top_k", 5))
+        include_sources = bool(args.get("include_sources", True))
+        repo_key = args.get("repo_key")
+        repo = args.get("repo")
+        repo_path = args.get("repo_path")
+
+        if not repo_key and repo_path:
+            try:
+                repo_key = self._repo_key(Path(repo_path))
+            except Exception:
+                repo_key = None
+
+        if not repo_key and repo:
+            resolved, error_text = await self._resolve_repo_key(repo_id, str(repo))
+            if error_text:
+                return CallToolResult(
+                    content=[TextContent(type="text", text=error_text)],
+                    isError=True,
+                )
+            repo_key = resolved
+
+        query_vec = (await self._embed_texts([question]))[0]
+
+        def _query() -> List[qmodels.ScoredPoint]:
+            result = self._qdrant.query_points(
+                collection_name=repo_id,
+                query=query_vec,
+                limit=top_k,
+                with_payload=True,
+                filter=(
+                    qmodels.Filter(
+                        must=[
+                            qmodels.FieldCondition(
+                                key="repo_key",
+                                match=qmodels.MatchValue(value=repo_key),
+                            )
+                        ]
+                    )
+                    if repo_key
+                    else None
+                ),
+            )
+            return list(result.points)
+
+        points = await asyncio.to_thread(_query)
+
+        evidence_blocks: List[str] = []
+        sources: List[str] = []
+        for p in points:
+            payload = p.payload or {}
+            payload_repo_key = payload.get("repo_key")
+            file_path = payload.get("file_path", "unknown")
+            start_line = payload.get("start_line")
+            end_line = payload.get("end_line")
+            content = payload.get("content", "")
+            if isinstance(content, str) and len(content) > MAX_CONTEXT_SNIPPET_CHARS:
+                content = content[:MAX_CONTEXT_SNIPPET_CHARS]
+
+            cite = (
+                f"[{payload_repo_key}] {file_path}:{start_line}-{end_line}"
+                if payload_repo_key
+                else f"{file_path}:{start_line}-{end_line}"
+            )
+            sources.append(cite)
+            evidence_blocks.append(f"SOURCE: {cite}\n{content}")
+
+        if not evidence_blocks:
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=(
+                            "No results. Try a narrower question, index more chunks, or remove repo filtering."
+                        ),
+                    )
+                ]
+            )
+
+        prompt = "\n\n".join(evidence_blocks)
+        user_content = (
+            "Use the following code/document excerpts to answer the question. "
+            "If the excerpts do not contain enough information, say what is missing.\n\n"
+            f"Question: {question}\n\n"
+            f"Excerpts:\n{prompt}"
+        )
+
+        def _answer() -> str:
+            resp = self._openai_client.chat.completions.create(
+                model=self.chat_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a codebase assistant. Answer concisely using only the provided excerpts.",
+                    },
+                    {"role": "user", "content": user_content},
+                ],
+            )
+            return (resp.choices[0].message.content or "").strip()
+
+        answer = await asyncio.to_thread(_answer)
+        if include_sources:
+            answer = answer + "\n\nSources:\n" + "\n".join([f"- {s}" for s in sources])
+
+        return CallToolResult(content=[TextContent(type="text", text=answer)])
 
     async def _resolve_repo_key(
         self, repo_id: str, selector: str
