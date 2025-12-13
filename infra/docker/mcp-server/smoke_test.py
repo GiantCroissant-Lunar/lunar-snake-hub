@@ -10,6 +10,9 @@ from openai import OpenAI
 from qdrant_client import QdrantClient
 
 
+MAX_EMBED_CHARS = 20_000
+
+
 def _chunk_text(text: str, chunk_lines: int = 200, overlap_lines: int = 20):
     lines = text.splitlines()
     if not lines:
@@ -20,6 +23,8 @@ def _chunk_text(text: str, chunk_lines: int = 200, overlap_lines: int = 20):
     while start < len(lines):
         end = min(start + chunk_lines, len(lines))
         content = "\n".join(lines[start:end])
+        if len(content) > MAX_EMBED_CHARS:
+            content = content[:MAX_EMBED_CHARS]
         chunks.append((start + 1, end, content))
         if end >= len(lines):
             break
