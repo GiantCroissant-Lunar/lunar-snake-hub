@@ -495,7 +495,7 @@ tasks:
       ERRORS=0
 
       # Check required directories
-      for dir in .agent docs nuke precommit specs infra; do
+      for dir in .agent docs precommit specs infra; do
         if [ ! -d "$dir" ]; then
           echo "  ❌ Missing directory: $dir"
           ERRORS=$((ERRORS + 1))
@@ -611,10 +611,16 @@ tasks:
     - task: hub:check
     - echo "✅ Sync test passed"
 
+  test:npm-dogfood:
+    desc: Test npm package dogfooding (install → verify → uninstall) in a throwaway repo
+    cmds:
+    - pwsh -File precommit/utils/test-dogfood-npm.ps1
+
   test:all:
     desc: Run all tests
     cmds:
     - task: test:sync
+    - task: test:npm-dogfood
     - task: validate:all
     - echo "✅ All tests passed"
 

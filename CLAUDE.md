@@ -8,4 +8,3 @@ Claude’s configuration is defined via the `.agent` adapters:
 
 This file is the entry point for Claude-specific behavior and should be kept in sync with the adapter configuration.
 See `.agent/adapters/README.md` for details on how adapters work.
-
