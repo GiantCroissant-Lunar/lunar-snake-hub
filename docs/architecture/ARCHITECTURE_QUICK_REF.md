@@ -31,7 +31,7 @@ source:
 ```
 Central Hub (lunar-hub)          Mac Mini Brain              Satellite Repos
 ├─ specs/                   ┌──────────────────┐          ├─ src/ (code only)
-├─ agents/rules/            │  Context Gateway │          ├─ .hub-manifest.toml
+├─ .agent/                  │  Context Gateway │          ├─ .hub-manifest.toml
 ├─ nuke/builds/             │  Letta (memory)  │          └─ tools/bootstrap-hub.sh
 ├─ precommit/hooks/         │  Qdrant (RAG)    │
 └─ .github/workflows/       │  n8n (orchestr.) │          Runtime only (gitignored):
@@ -69,8 +69,8 @@ lunar-hub/
 │   ├── rfc.md
 │   ├── adr.md
 │   └── schema/
-├── agents/
-│   ├── rules/R-{CAT}-{NUM}-{desc}.md
+├── .agent/
+│   ├── rules/
 │   └── prompts/
 ├── nuke/
 │   ├── Build.Common.cs
@@ -97,7 +97,7 @@ satellite-repo/
 
 # Runtime only (NEVER COMMITTED):
 .hub-cache/                      # ← Synced from hub
-├── agents/
+├── .agent/
 ├── nuke/
 └── specs/
 ```
@@ -116,7 +116,6 @@ repo = "lunar-snake/lunar-hub"
 auth-api = "1.2.0"              # Which specs you implement
 
 [packs]
-agents = "1.5.2"                 # Agent rules version
 nuke = "2.1.0"                   # NUKE build version
 precommit = "2.3.0"              # Pre-commit hooks version
 ```
@@ -132,11 +131,6 @@ precommit = "2.3.0"              # Pre-commit hooks version
 set -euo pipefail
 MANIFEST=".hub-manifest.toml"
 CACHE=".hub-cache"
-
-AGENTS_VER=$(tomlq -r '.packs.agents' "$MANIFEST")
-curl -sSL -o "$CACHE/agents.zip" \
-  "https://github.com/lunar-snake/lunar-hub/releases/download/packs-agents-v$AGENTS_VER/agents-pack.zip"
-unzip -o "$CACHE/agents.zip" -d "$CACHE/agents"
 
 echo "✅ Hub assets synced to $CACHE"
 ```
@@ -237,7 +231,7 @@ POST /reindex          // Rebuild index (GitHub Actions)
    ```
 
 2. **Work:**
-   - Agent reads rules from `.hub-cache/agents/rules/`
+   - Agent reads rules from `.hub-cache/.agent/rules/`
    - Agent calls Gateway `/ask` for context (not full repo)
    - Agent calls Gateway `/memory` to save decisions
 
@@ -255,25 +249,22 @@ POST /reindex          // Rebuild index (GitHub Actions)
 
    ```bash
    cd lunar-hub
-   vim agents/rules/R-CODE-010-naming.md
+   vim .agent/rules/00-index.md
    git add . && git commit -m "Update naming rule"
    ```
 
-2. **Release new pack:**
+2. **Push changes:**
 
    ```bash
-   ./scripts/publish-packs.sh agents 1.5.3
-   git tag packs-agents-v1.5.3
-   git push --tags
+   git push
    ```
 
 3. **GitHub Actions:**
-   - Builds `agents-pack.zip`
-   - Opens PRs in satellites to bump version
+   - Builds shared assets
+   - Satellites pull updates on next sync
 
 4. **Satellites:**
-   - Review PR (just `.hub-manifest.toml` change)
-   - Merge → next bootstrap pulls v1.5.3
+   - Run `task hub:sync` to refresh `.hub-cache/.agent/`
 
 ---
 

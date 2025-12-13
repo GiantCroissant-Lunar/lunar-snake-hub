@@ -355,10 +355,6 @@ lunar-hub/  (or chosen name)
 │   └── publish-packs.sh           # Build/release artifact packs
 │
 ├── packages/                       # Versioned Release Packs
-│   ├── agents-pack/               # Published as release asset
-│   │   ├── pack.json              # Manifest
-│   │   ├── rules/
-│   │   └── prompts/
 │   ├── nuke-pack/
 │   └── precommit-pack/
 │
@@ -380,10 +376,6 @@ lunar-hub/  (or chosen name)
 
 ```toml
 # registry/packs.toml
-[agents]
-version = "1.5.2"
-tag = "packs-agents-v1.5.2"
-
 [nuke]
 version = "2.1.0"
 tag = "packs-nuke-v2.1.0"
@@ -422,9 +414,9 @@ tags = ["spec-inventory-system-v0.7.1"]
 
 **"Clean on GitHub, Rich at Runtime"**
 
-- Source control: minimal (code + manifest only)
-- Runtime: full (synced assets from hub cached locally)
-- `.gitignore`: excludes all synced content
+- **Committed:** Code + `.hub-manifest.toml` only
+- **Cached:** Everything else (agents, NUKE, specs) synced at runtime
+- **Never Committed:** `.hub-cache/`, `.agents/`, synced builds
 
 ### Folder Structure
 
@@ -450,16 +442,14 @@ satellite-repo/  (e.g., infra-projects/auth-service)
 
 # Runtime-only (gitignored, synced by bootstrap):
 .hub-cache/                         # **NEVER COMMITTED**
-├── agents/                         # Synced from lunar-hub
-│   ├── rules/
-│   └── prompts/
+├── .agent/                         # Synced from lunar-hub
 ├── nuke/                           # Synced NUKE components
 ├── specs/                          # Relevant specs only
 └── precommit/                      # Hook scripts
 
 .agents/                            # **NEVER COMMITTED** (for IDE agents)
 ├── mcp-tools.json
-└── rules/ -> ../.hub-cache/agents/rules/
+└── rules/ -> ../.hub-cache/.agent/rules/
 ```
 
 ### `.hub-manifest.toml` (Example)
@@ -478,7 +468,6 @@ inventory-system = "0.7.1"
 
 [packs]
 # Which shared asset packs to sync (version pinning)
-agents = "1.5.2"
 nuke = "2.1.0"
 precommit = "2.3.0"
 linters = "1.1.0"
@@ -486,8 +475,8 @@ linters = "1.1.0"
 [sync]
 # What to pull into .hub-cache/ at runtime
 include = [
-    "agents/rules/R-CODE-*",       # All coding rules
-    "agents/prompts/*",             # All prompts
+    ".agent/rules/**",               # All coding rules
+    ".agent/prompts/**",             # All prompts
     "nuke/Build.*.cs",              # NUKE components
     "specs/${specs}/**",            # Only pinned specs
     "precommit/**",                 # All hooks
@@ -531,21 +520,12 @@ echo "🔄 Bootstrapping from lunar-hub..."
 
 # Read versions from manifest (requires tomlq or dasel)
 HUB_REPO=$(tomlq -r '.hub.repo' "$MANIFEST")
-AGENTS_VER=$(tomlq -r '.packs.agents' "$MANIFEST")
 NUKE_VER=$(tomlq -r '.packs.nuke' "$MANIFEST")
 PRECOMMIT_VER=$(tomlq -r '.packs.precommit' "$MANIFEST")
 
 mkdir -p "$CACHE"
 
-# Fetch agents pack
-AGENTS_ZIP="$CACHE/agents-$AGENTS_VER.zip"
-if [ ! -f "$AGENTS_ZIP" ]; then
-    echo "  📦 Downloading agents-pack v$AGENTS_VER..."
-    curl -sSL -o "$AGENTS_ZIP" \
-        "https://github.com/$HUB_REPO/releases/download/packs-agents-v$AGENTS_VER/agents-pack.zip"
-fi
-echo "  ✅ Extracting agents-pack..."
-unzip -o "$AGENTS_ZIP" -d "$CACHE/agents" >/dev/null
+cp -r "$CACHE/hub-repo/.agent" "$CACHE/" >/dev/null 2>&1 || true
 
 # Fetch NUKE pack
 NUKE_ZIP="$CACHE/nuke-$NUKE_VER.zip"
@@ -567,12 +547,10 @@ fi
 echo "  ✅ Extracting precommit-pack..."
 unzip -o "$PRECOMMIT_ZIP" -d "$CACHE/precommit" >/dev/null
 
-# Setup .agents/ for IDE (symlink or copy)
 mkdir -p "$ROOT/.agents"
-ln -sf "$CACHE/agents/rules" "$ROOT/.agents/rules" 2>/dev/null || cp -r "$CACHE/agents/rules" "$ROOT/.agents/"
+ln -sf "$CACHE/.agent/rules" "$ROOT/.agents/rules" 2>/dev/null || cp -r "$CACHE/.agent/rules" "$ROOT/.agents/"
 
 echo "✅ Hub sync complete. Assets in $CACHE"
-echo "   Agents: v$AGENTS_VER"
 echo "   NUKE:   v$NUKE_VER"
 echo "   Hooks:  v$PRECOMMIT_VER"
 ```
@@ -1082,7 +1060,7 @@ steps:
     run: ./tools/bootstrap-hub.sh
 
   - name: Verify cache
-    run: test -f .hub-cache/agents/rules/R-CODE-010-naming.md
+    run: test -f .hub-cache/.agent/rules/00-index.md
 
   # Then regular build/test
 ```
@@ -1165,7 +1143,6 @@ jobs:
 ```diff
 # .hub-manifest.toml
 [packs]
-agents = "1.5.2"
 -nuke = "2.0.5"
 +nuke = "2.1.0"
 precommit = "2.3.0"
@@ -1206,7 +1183,7 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 
 1. ✅ Create `lunar-hub` repo
 2. ✅ Move one NUKE build → `nuke/Build.DotNet.cs`
-3. ✅ Move agent rules → `agents/rules/`
+3. ✅ Move agent rules → `.agent/`
 4. ✅ Create `.hub-manifest.toml` spec
 5. ✅ Write `tools/bootstrap-hub.sh`
 6. ✅ Set up Letta on Mac Mini (Docker Compose)
@@ -1444,7 +1421,7 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 
 ### Why Runtime Sync Instead of Committing Hub Assets?
 
-**Key Question:** Should satellites commit `.agents/`, `nuke/`, etc.?
+**Key Question:** Should satellites commit `.agent/`, `nuke/`, etc.?
 
 **No, because:**
 
@@ -1476,7 +1453,7 @@ unzip -o "$NUKE_ZIP" -d .hub-cache/nuke
 
 - [ ] Create `lunar-hub` repository
 - [ ] Extract one NUKE build from existing project → `lunar-hub/nuke/`
-- [ ] Move agent rules → `lunar-hub/agents/rules/`
+- [ ] Move agent rules → `lunar-hub/.agent/`
 - [ ] Write `tools/bootstrap-hub.sh` (fetch packs script)
 - [ ] Set up Mac Mini Docker Compose (Letta only for Phase 1)
 - [ ] Configure Letta as MCP tool in VS Code
@@ -1534,7 +1511,7 @@ auth-service/
 
 # Runtime only (gitignored):
 .hub-cache/
-└── agents/
+└── .agent/
     └── rules/
         └── R-CODE-010-naming.md
 ```
@@ -1558,7 +1535,7 @@ auth-service/
 
 # Runtime (gitignored):
 .hub-cache/
-├── agents/
+├── .agent/
 │   ├── rules/
 │   └── prompts/
 ├── nuke/
@@ -1566,7 +1543,7 @@ auth-service/
 │   └── auth-api/
 └── precommit/
 
-.agents/ -> .hub-cache/agents/
+.agents/ -> .hub-cache/.agent/
 ```
 
 ---

@@ -6,7 +6,6 @@ version: '3'
 vars:
   HUB_CACHE: .hub-cache
   HUB_REPO: https://github.com/GiantCroissant-Lunar/lunar-snake-hub
-  AGENT_SYMLINK: .agent
 
 tasks:
   # === Hub Sync Tasks (Dogfooding) ===
@@ -16,7 +15,6 @@ tasks:
     cmds:
     - task: hub:clone
     - task: hub:copy
-    - task: hub:symlink
     - echo "✅ Hub sync complete (dogfooding mode)"
 
   hub:clone:
@@ -45,21 +43,6 @@ tasks:
     - echo "✅ Copied .agent ({{.HUB_CACHE}}/.agent/)"
     - echo "✅ Copied precommit ({{.HUB_CACHE}}/precommit/)"
 
-  hub:symlink:
-    desc: Create .agent symlink to .hub-cache/.agent/
-    internal: true
-    cmds:
-    - |
-      if [ -L {{.AGENT_SYMLINK}} ] || [ -e {{.AGENT_SYMLINK}} ]; then
-        echo "ℹ️  {{.AGENT_SYMLINK}} already exists, skipping"
-      else
-        echo "🔗 Creating {{.AGENT_SYMLINK}} -> .hub-cache/.agent/"
-        # Try Unix symlink first, fall back to Windows junction
-        ln -s .hub-cache/.agent {{.AGENT_SYMLINK}} 2>/dev/null || \
-          cmd /c "mklink /J {{.AGENT_SYMLINK}} .hub-cache\\.agent" || \
-          echo "⚠️  Failed to create symlink for .agent"
-      fi
-
   hub:check:
     desc: Verify hub cache is up to date
     cmds:
@@ -75,11 +58,6 @@ tasks:
         echo "  ✅ Precommit: synced"
       else
         echo "  ❌ Precommit: Not synced"
-      fi
-      if [ -L {{.AGENT_SYMLINK}} ]; then
-        echo "  ✅ Symlink: {{.AGENT_SYMLINK}} -> .hub-cache/.agent/"
-      else
-        echo "  ⚠️  Symlink: Not created"
       fi
 
   hub:clean:

@@ -80,7 +80,6 @@ lunar-snake-hub/
 repo = "GiantCroissant-Lunar/lunar-snake-hub"
 
 [packs]
-agents = "0.1.0"
 precommit = "0.1.0"
 ```
 
@@ -109,7 +108,6 @@ tasks:
 
 ```
 .hub-cache/
-.agent          # If using symlink
 ```
 
 ### 4. Sync and use
@@ -168,7 +166,6 @@ Satellite repos should use `unify-build` for all build pipelines and publish wor
 
 Releases are tagged by pack type:
 
-- `packs-agents-v0.1.0` - Agent rules/prompts
 - `packs-precommit-v0.1.0` - Pre-commit hooks
 - `spec-{domain}-v1.0.0` - Specification releases
 

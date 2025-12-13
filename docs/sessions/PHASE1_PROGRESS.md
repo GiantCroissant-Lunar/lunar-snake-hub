@@ -110,7 +110,6 @@ repo = "GiantCroissant-Lunar/lunar-snake-hub"
 branch = "main"
 
 [packs]
-agents = "0.1.0"
 nuke = "0.1.0"
 precommit = "0.1.0"
 

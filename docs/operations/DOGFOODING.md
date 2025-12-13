@@ -68,7 +68,7 @@ This is called "dogfooding" (eating your own dog food).
 
 **Why:** AI assistants (like Claude, Copilot, Windsurf) read from `.agent/` to understand coding standards. By using `.agent/` consistently in both hub and satellites, agents see the same rule set everywhere.
 
-**Location:** `.agent/` (gitignored directory, often a symlink to `.hub-cache/.agent/` in satellites)
+**Location:** `.agent/` (committed in the hub; in satellites it is typically a symlink/junction to `.hub-cache/.agent/`)
 
 **Test:**
 

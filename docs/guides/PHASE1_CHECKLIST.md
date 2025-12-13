@@ -169,7 +169,6 @@ repo = "GiantCroissant-Lunar/lunar-snake-hub"
 branch = "main"
 
 [packs]
-agents = "0.1.0"      # Initial version
 nuke = "0.1.0"
 precommit = "0.1.0"
 
@@ -187,7 +186,7 @@ include = [
 ```gitignore
 # Add these lines
 .hub-cache/
-.agent          # Now a symlink
+.agent
 ```
 
 **Commit:**
@@ -247,7 +246,7 @@ tasks:
     desc: Verify hub cache is fresh
     cmds:
       - |
-        if [ ! -d .hub-cache/agents ]; then
+        if [ ! -d .hub-cache/.agent ]; then
           echo "❌ Run 'task hub:sync' first"
           exit 1
         fi
@@ -271,7 +270,7 @@ task hub:check
 
 ```bash
 ls -la .hub-cache/.agent/rules/
-ls -la .agent  # Should be symlink
+ls -la .agent
 ```
 
 **Commit:**

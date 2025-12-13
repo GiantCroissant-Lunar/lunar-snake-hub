@@ -191,7 +191,7 @@ sops exec-env secrets/mac-mini.enc.yaml 'docker compose up -d'
 - `.agent/scripts/` - Helper scripts
 - `.agent/specs/` - Agent-specific specs
 
-**Hub structure:** We'll adapt this into `lunar-snake-hub/agents/`
+**Hub structure:** We'll adapt this into `lunar-snake-hub/.agent/`
 
 **Naming:** Flexible - can keep your current structure or migrate to `R-{CAT}-{NUM}-{desc}.md` pattern.
 
@@ -241,7 +241,7 @@ tasks:
 2. **Agent Rules as Guardrails**
    - Agents read rules from hub
    - Rules enforce coding standards, patterns, conventions
-   - Living in `lunar-snake-hub/agents/rules/`
+   - Living in `lunar-snake-hub/.agent/`
 
 3. **Memory as Context**
    - Letta stores decisions, rationale, context
@@ -310,11 +310,11 @@ lablab-bean/
 
 # Runtime only (gitignored):
 .hub-cache/                      # ❌ Synced from hub (gitignored)
-├── agents/                      # from lunar-snake-hub
+├── .agent/                      # from lunar-snake-hub
 ├── nuke/                        # from lunar-snake-hub
 └── specs/                       # from lunar-snake-hub
 
-.agent/ -> .hub-cache/agents/    # ❌ Symlink (gitignored)
+.agent/ -> .hub-cache/.agent/    # ❌ Symlink (gitignored)
 ```
 
 ---
@@ -366,7 +366,7 @@ cd lunar-snake-hub
 lunar-snake-hub/
 ├── README.md
 ├── .gitignore
-├── agents/
+├── .agent/
 │   ├── rules/          # From lablab-bean/.agent/base/
 │   ├── prompts/        # From lablab-bean/.agent/agents/
 │   └── adapters/       # From lablab-bean/.agent/adapters/
@@ -391,12 +391,12 @@ lunar-snake-hub/
 
 ```bash
 # Copy .agent/ structure to hub
-cp -r lablab-bean/.agent/* lunar-snake-hub/agents/
+cp -r lablab-bean/.agent/* lunar-snake-hub/.agent/
 
 # Organize:
-# - lablab-bean/.agent/base/ → lunar-snake-hub/agents/rules/
-# - lablab-bean/.agent/agents/ → lunar-snake-hub/agents/prompts/
-# - lablab-bean/.agent/adapters/ → lunar-snake-hub/agents/adapters/
+# - lablab-bean/.agent/base/ → lunar-snake-hub/.agent/rules/
+# - lablab-bean/.agent/agents/ → lunar-snake-hub/.agent/prompts/
+# - lablab-bean/.agent/adapters/ → lunar-snake-hub/.agent/adapters/
 ```
 
 #### 3. Extract NUKE common build (30 min)
@@ -416,13 +416,12 @@ repo = "GiantCroissant-Lunar/lunar-snake-hub"
 # Add when you have specs to implement
 
 [packs]
-agents = "0.1.0"      # Initial version
 nuke = "0.1.0"
 precommit = "0.1.0"
 
 [sync]
 include = [
-    "agents/**",
+    ".agent/**",
     "nuke/**",
     "precommit/**",
 ]
@@ -441,8 +440,6 @@ tasks:
         echo "🔄 Syncing from lunar-snake-hub..."
         # Read manifest (requires yq or dasel)
         HUB_REPO=$(yq e '.hub.repo' .hub-manifest.toml)
-        AGENTS_VER=$(yq e '.packs.agents' .hub-manifest.toml)
-
         mkdir -p .hub-cache
 
         # Download agents pack (when releases exist)
@@ -454,18 +451,18 @@ tasks:
         fi
 
         # Sync to .hub-cache/
-        rsync -av .hub-cache/hub-repo/agents/ .hub-cache/agents/
+        rsync -av .hub-cache/hub-repo/.agent/ .hub-cache/.agent/
         rsync -av .hub-cache/hub-repo/nuke/ .hub-cache/nuke/
 
         # Symlink .agent for backward compat
-        ln -sf .hub-cache/agents .agent
+        ln -sf .hub-cache/.agent .agent
 
         echo "✅ Hub sync complete"
 
   hub:check:
     desc: Verify hub cache is fresh
     cmds:
-      - test -d .hub-cache/agents || (echo "❌ Run 'task hub:sync' first" && exit 1)
+      - test -d .hub-cache/.agent || (echo "❌ Run 'task hub:sync' first" && exit 1)
       - echo "✅ Hub cache present"
 ```
 
@@ -518,12 +515,12 @@ curl http://localhost:5055/v1/health
 task hub:sync
 
 # Verify
-ls -la .hub-cache/agents/
+ls -la .hub-cache/.agent/
 ls -la .agent  # Should be symlink
 
 # Ask agent to read a rule
 # "Read the naming conventions from agent rules"
-# Agent should find it in .hub-cache/agents/rules/...
+# Agent should find it in .hub-cache/.agent/rules/...
 
 # Test Letta (add as MCP tool first - see below)
 ```
