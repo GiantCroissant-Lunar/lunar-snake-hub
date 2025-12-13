@@ -89,6 +89,21 @@ class ContextGatewayMCP:
                                     "description": "Recreate collection before indexing (default: false)",
                                     "default": False,
                                 },
+                                "embed_batch_size": {
+                                    "type": "integer",
+                                    "description": "How many chunks to embed per request (default: 64)",
+                                    "default": 64,
+                                },
+                                "max_files": {
+                                    "type": "integer",
+                                    "description": "Optional cap on number of files to index (0 = no limit)",
+                                    "default": 0,
+                                },
+                                "max_chunks": {
+                                    "type": "integer",
+                                    "description": "Optional cap on number of chunks to index (0 = no limit)",
+                                    "default": 0,
+                                },
                             },
                             "required": ["repo_path"],
                         },
@@ -393,6 +408,10 @@ class ContextGatewayMCP:
         repo_id = args.get("repo_id") or self.context_collection
         repo_path = Path(args["repo_path"])
         force_reindex = bool(args.get("force_reindex", False))
+        embed_batch_size = int(args.get("embed_batch_size", 64) or 64)
+        max_files = int(args.get("max_files", 0) or 0)
+        max_chunks = int(args.get("max_chunks", 0) or 0)
+        embed_batch_size = max(1, embed_batch_size)
 
         if not repo_path.exists() or not repo_path.is_dir():
             return CallToolResult(
@@ -420,8 +439,12 @@ class ContextGatewayMCP:
 
         max_file_bytes = 1_000_000
         docs: List[Tuple[str, int, int, str]] = []
+        files_seen = 0
 
         for file_path in self._iter_repo_files(repo_path):
+            files_seen += 1
+            if max_files and files_seen > max_files:
+                break
             try:
                 if file_path.stat().st_size > max_file_bytes:
                     continue
@@ -429,8 +452,12 @@ class ContextGatewayMCP:
                 for start_line, end_line, content in self._chunk_text(text):
                     rel_path = str(file_path.relative_to(repo_path)).replace("\\", "/")
                     docs.append((rel_path, start_line, end_line, content))
+                    if max_chunks and len(docs) >= max_chunks:
+                        break
             except Exception:
                 continue
+            if max_chunks and len(docs) >= max_chunks:
+                break
 
         if not docs:
             return CallToolResult(
@@ -438,32 +465,47 @@ class ContextGatewayMCP:
                 isError=False,
             )
 
-        embeddings = await self._embed_texts([d[3] for d in docs])
-        vector_size = len(embeddings[0]) if embeddings else 0
-        await self._ensure_collection(repo_id, vector_size, force_reindex)
-
         repo_key = self._repo_key(repo_path)
         repo_ns = uuid.uuid5(uuid.NAMESPACE_URL, repo_key)
 
-        points: List[qmodels.PointStruct] = []
-        for (rel_path, start_line, end_line, content), vector in zip(docs, embeddings):
-            point_id = str(uuid.uuid5(repo_ns, f"{rel_path}:{start_line}:{end_line}"))
-            payload = {
-                "repo_key": repo_key,
-                "repo_path": str(repo_path),
-                "file_path": rel_path,
-                "start_line": start_line,
-                "end_line": end_line,
-                "content": content,
-            }
-            points.append(
-                qmodels.PointStruct(id=point_id, vector=vector, payload=payload)
-            )
+        # Embed a small first batch to determine vector size / create collection.
+        first_batch = docs[: min(len(docs), embed_batch_size)]
+        first_embeddings = await self._embed_texts([d[3] for d in first_batch])
+        vector_size = len(first_embeddings[0]) if first_embeddings else 0
+        await self._ensure_collection(repo_id, vector_size, force_reindex)
 
-        def _upsert() -> None:
-            self._qdrant.upsert(collection_name=repo_id, points=points)
+        upserted = 0
+        for i in range(0, len(docs), embed_batch_size):
+            batch = docs[i : i + embed_batch_size]
+            if i == 0:
+                batch_embeddings = first_embeddings
+            else:
+                batch_embeddings = await self._embed_texts([d[3] for d in batch])
 
-        await asyncio.to_thread(_upsert)
+            points: List[qmodels.PointStruct] = []
+            for (rel_path, start_line, end_line, content), vector in zip(
+                batch, batch_embeddings
+            ):
+                point_id = str(
+                    uuid.uuid5(repo_ns, f"{rel_path}:{start_line}:{end_line}")
+                )
+                payload = {
+                    "repo_key": repo_key,
+                    "repo_path": str(repo_path),
+                    "file_path": rel_path,
+                    "start_line": start_line,
+                    "end_line": end_line,
+                    "content": content,
+                }
+                points.append(
+                    qmodels.PointStruct(id=point_id, vector=vector, payload=payload)
+                )
+
+            def _upsert_batch() -> None:
+                self._qdrant.upsert(collection_name=repo_id, points=points)
+
+            await asyncio.to_thread(_upsert_batch)
+            upserted += len(points)
 
         return CallToolResult(
             content=[
@@ -471,7 +513,8 @@ class ContextGatewayMCP:
                     type="text",
                     text=(
                         f"Indexed collection={repo_id}. repo_key={repo_key}. "
-                        f"Files/chunks indexed: {len(points)}"
+                        f"Files/chunks indexed: {upserted}. "
+                        f"embed_batch_size={embed_batch_size}"
                     ),
                 )
             ]
