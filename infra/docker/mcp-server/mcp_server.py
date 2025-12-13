@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-MAX_EMBED_CHARS = 20_000
+MAX_EMBED_CHARS = 8_000
 
 
 class ContextGatewayMCP:

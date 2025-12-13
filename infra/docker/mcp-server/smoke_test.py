@@ -10,7 +10,7 @@ from openai import OpenAI
 from qdrant_client import QdrantClient
 
 
-MAX_EMBED_CHARS = 20_000
+MAX_EMBED_CHARS = 8_000
 
 
 def _chunk_text(text: str, chunk_lines: int = 200, overlap_lines: int = 20):
