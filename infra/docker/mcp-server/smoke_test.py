@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -307,6 +308,7 @@ def main() -> int:
         from qdrant_client.http import models as qmodels
 
         repo_key = f"{repo_root.name}-{hashlib.sha1(str(repo_root).encode('utf-8')).hexdigest()[:10]}"
+        repo_ns = uuid.uuid5(uuid.NAMESPACE_URL, repo_key)
         batch_size = max(1, int(args.embed_batch_size))
         upserted = 0
         print(f"  embedding batches of {batch_size}")
@@ -321,7 +323,7 @@ def main() -> int:
 
             points = []
             for (rel, start_line, end_line, content), v in zip(batch, vectors):
-                pid = f"{repo_key}:{rel}:{start_line}:{end_line}"
+                pid = str(uuid.uuid5(repo_ns, f"{rel}:{start_line}:{end_line}"))
                 payload = {
                     "repo_key": repo_key,
                     "repo_path": str(repo_root),
@@ -341,8 +343,6 @@ def main() -> int:
         print(f"  repo_key: {repo_key}")
 
     if args.search:
-        from qdrant_client.http import models as qmodels
-
         query_vec = (
             oai.embeddings.create(
                 model=embedding_model, input=args.search, encoding_format="float"
@@ -350,16 +350,15 @@ def main() -> int:
             .data[0]
             .embedding
         )
-        results = qc.search(
+        query_result = qc.query_points(
             collection_name=context_collection,
-            query_vector=query_vec,
+            query=query_vec,
             limit=args.top_k,
             with_payload=True,
-            query_filter=None,
         )
 
         print("\nSearch results:")
-        for r in results:
+        for r in query_result.points:
             payload = r.payload or {}
             rk = payload.get("repo_key")
             fp = payload.get("file_path")

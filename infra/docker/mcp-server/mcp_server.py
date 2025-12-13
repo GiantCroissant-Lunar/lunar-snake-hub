@@ -10,6 +10,7 @@ import hashlib
 import logging
 import os
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -416,10 +417,11 @@ class ContextGatewayMCP:
         await self._ensure_collection(repo_id, vector_size, force_reindex)
 
         repo_key = self._repo_key(repo_path)
+        repo_ns = uuid.uuid5(uuid.NAMESPACE_URL, repo_key)
 
         points: List[qmodels.PointStruct] = []
         for (rel_path, start_line, end_line, content), vector in zip(docs, embeddings):
-            point_id = f"{repo_key}:{rel_path}:{start_line}:{end_line}"
+            point_id = str(uuid.uuid5(repo_ns, f"{rel_path}:{start_line}:{end_line}"))
             payload = {
                 "repo_key": repo_key,
                 "repo_path": str(repo_path),
@@ -458,17 +460,18 @@ class ContextGatewayMCP:
 
         query_vec = (await self._embed_texts([query]))[0]
 
-        def _search() -> List[qmodels.ScoredPoint]:
-            return self._qdrant.search(
+        def _query() -> List[qmodels.ScoredPoint]:
+            result = self._qdrant.query_points(
                 collection_name=repo_id,
-                query_vector=query_vec,
+                query=query_vec,
                 limit=top_k,
                 with_payload=True,
-                query_filter=(
+                filter=(
                     qmodels.Filter(
                         must=[
                             qmodels.FieldCondition(
-                                key="repo_key", match=qmodels.MatchValue(value=repo_key)
+                                key="repo_key",
+                                match=qmodels.MatchValue(value=repo_key),
                             )
                         ]
                     )
@@ -476,8 +479,9 @@ class ContextGatewayMCP:
                     else None
                 ),
             )
+            return list(result.points)
 
-        points = await asyncio.to_thread(_search)
+        points = await asyncio.to_thread(_query)
 
         lines: List[str] = []
         for p in points:
