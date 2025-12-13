@@ -40,43 +40,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Phase 2: Context Gateway (Custom FastAPI service)
-  gateway:
-    build:
-      context: ./gateway
-      dockerfile: Dockerfile
-    container_name: lunar-gateway
-    environment:
-    - OPENAI_API_KEY=${OPENAI_API_KEY}
-    - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
-    - QDRANT_URL=http://qdrant:6333
-    - LETTA_URL=http://letta:5055
-    - GATEWAY_TOKEN=${GATEWAY_TOKEN}
-    - PORT=5057
-    - CORS_ORIGIN=*
-    volumes:
-    - ~/repos:/repos    # Access to git clones for indexing
-    - ./data/gateway:/data
-    depends_on:
-    - qdrant
-    - letta
-    ports:
-    - 5057:5057
-    restart: unless-stopped
-
-  # Phase 2: MCP Server (Model Context Protocol)
-  mcp-server:
-    build:
-      context: ./mcp-server
-      dockerfile: Dockerfile
-    container_name: lunar-mcp-server
-    environment:
-    - GATEWAY_URL=http://gateway:5057
-    - GATEWAY_TOKEN=${GATEWAY_TOKEN}
-    depends_on:
-    - gateway
-    restart: unless-stopped
-
 networks:
   default:
     name: lunar-snake-hub

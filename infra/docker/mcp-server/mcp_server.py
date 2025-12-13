@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
-MCP Server for Context Gateway integration
-Provides tools for RAG, memory, and notes operations
+MCP Server for local context + memory
+Provides tools for indexing and searching code context (backed by Qdrant)
+and for agent memory operations (backed by Letta).
 """
 
 import asyncio
 import logging
+import os
 import sys
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
 import httpx
+from openai import OpenAI
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import (
@@ -17,6 +22,8 @@ from mcp.types import (
     Tool,
     TextContent,
 )
+from qdrant_client import QdrantClient
+from qdrant_client.http import models as qmodels
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,13 +31,32 @@ logger = logging.getLogger(__name__)
 
 
 class ContextGatewayMCP:
-    """MCP Server for Context Gateway"""
+    """Local MCP server that hides Qdrant/Letta behind tools."""
 
     def __init__(self):
-        self.gateway_url = "http://gateway:5057"
-        self.gateway_token = "your-gateway-token"  # Should come from env
-        self.server = Server("context-gateway-mcp")
+        self.letta_url = os.getenv("LETTA_URL", "http://localhost:5055")
+        self.qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+
+        self.embedding_api_key = os.getenv("OPENAI_API_KEY")
+        self.embedding_base_url = os.getenv(
+            "OPENAI_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"
+        )
+        self.embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+
+        self.repo_roots = self._parse_repo_roots(os.getenv("MCP_REPO_ROOTS", ""))
+        if not self.repo_roots:
+            self.repo_roots = [Path.home() / "repos"]
+
+        self.server = Server("context-mcp")
         self._setup_handlers()
+
+        if not self.embedding_api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+
+        self._openai_client = OpenAI(
+            api_key=self.embedding_api_key, base_url=self.embedding_base_url
+        )
+        self._qdrant = QdrantClient(url=self.qdrant_url)
 
     def _setup_handlers(self):
         """Setup MCP handlers"""
@@ -41,41 +67,41 @@ class ContextGatewayMCP:
             return ListToolsResult(
                 tools=[
                     Tool(
-                        name="ask_rag",
-                        description="Ask a question using RAG (Retrieval-Augmented Generation)",
+                        name="context_index_repo",
+                        description="Index a local repository into the context store",
                         inputSchema={
                             "type": "object",
                             "properties": {
-                                "query": {
+                                "repo_id": {
                                     "type": "string",
-                                    "description": "Question to ask",
+                                    "description": "Logical repository identifier (collection name)",
                                 },
-                                "repo": {
+                                "repo_path": {
                                     "type": "string",
-                                    "description": "Repository name to search in (optional)",
+                                    "description": "Absolute path to the repository to index",
                                 },
-                                "top_k": {
-                                    "type": "integer",
-                                    "description": "Number of results to return (default: 5)",
-                                    "default": 5,
+                                "force_reindex": {
+                                    "type": "boolean",
+                                    "description": "Recreate collection before indexing (default: false)",
+                                    "default": False,
                                 },
                             },
-                            "required": ["query"],
+                            "required": ["repo_id", "repo_path"],
                         },
                     ),
                     Tool(
-                        name="search_vectors",
-                        description="Search for similar content without LLM generation",
+                        name="context_search",
+                        description="Search indexed context for relevant code/doc snippets",
                         inputSchema={
                             "type": "object",
                             "properties": {
+                                "repo_id": {
+                                    "type": "string",
+                                    "description": "Logical repository identifier (collection name)",
+                                },
                                 "query": {
                                     "type": "string",
                                     "description": "Search query",
-                                },
-                                "repo": {
-                                    "type": "string",
-                                    "description": "Repository name to search in (optional)",
                                 },
                                 "top_k": {
                                     "type": "integer",
@@ -88,11 +114,20 @@ class ContextGatewayMCP:
                                     "default": True,
                                 },
                             },
-                            "required": ["query"],
+                            "required": ["repo_id", "query"],
                         },
                     ),
                     Tool(
-                        name="store_memory",
+                        name="context_list_repos",
+                        description="List available context repositories (indexed collections)",
+                        inputSchema={
+                            "type": "object",
+                            "properties": {},
+                            "required": [],
+                        },
+                    ),
+                    Tool(
+                        name="memory_put",
                         description="Store a value in agent memory",
                         inputSchema={
                             "type": "object",
@@ -111,7 +146,7 @@ class ContextGatewayMCP:
                         },
                     ),
                     Tool(
-                        name="get_memory",
+                        name="memory_get",
                         description="Retrieve a value from agent memory",
                         inputSchema={
                             "type": "object",
@@ -126,43 +161,18 @@ class ContextGatewayMCP:
                         },
                     ),
                     Tool(
-                        name="add_note",
-                        description="Add a note with optional tags",
+                        name="memory_search",
+                        description="Search agent memory",
                         inputSchema={
                             "type": "object",
                             "properties": {
-                                "text": {"type": "string", "description": "Note text"},
-                                "repo": {
+                                "agent_id": {
                                     "type": "string",
-                                    "description": "Repository name (optional)",
+                                    "description": "Agent identifier",
                                 },
-                                "tags": {
-                                    "type": "array",
-                                    "items": {"type": "string"},
-                                    "description": "Note tags (optional)",
-                                },
-                            },
-                            "required": ["text"],
-                        },
-                    ),
-                    Tool(
-                        name="search_notes",
-                        description="Search notes by text or tags",
-                        inputSchema={
-                            "type": "object",
-                            "properties": {
                                 "query": {
                                     "type": "string",
                                     "description": "Search query",
-                                },
-                                "repo": {
-                                    "type": "string",
-                                    "description": "Repository name to filter by (optional)",
-                                },
-                                "tags": {
-                                    "type": "array",
-                                    "items": {"type": "string"},
-                                    "description": "Filter by tags (optional)",
                                 },
                                 "limit": {
                                     "type": "integer",
@@ -170,39 +180,7 @@ class ContextGatewayMCP:
                                     "default": 10,
                                 },
                             },
-                            "required": ["query"],
-                        },
-                    ),
-                    Tool(
-                        name="list_collections",
-                        description="List all available vector collections",
-                        inputSchema={
-                            "type": "object",
-                            "properties": {},
-                            "required": [],
-                        },
-                    ),
-                    Tool(
-                        name="index_repository",
-                        description="Index a repository into vector database",
-                        inputSchema={
-                            "type": "object",
-                            "properties": {
-                                "repo_path": {
-                                    "type": "string",
-                                    "description": "Path to repository",
-                                },
-                                "collection_name": {
-                                    "type": "string",
-                                    "description": "Collection name for vectors",
-                                },
-                                "force_reindex": {
-                                    "type": "boolean",
-                                    "description": "Force reindex even if exists (default: false)",
-                                    "default": False,
-                                },
-                            },
-                            "required": ["repo_path", "collection_name"],
+                            "required": ["agent_id", "query"],
                         },
                     ),
                 ]
@@ -212,22 +190,18 @@ class ContextGatewayMCP:
         async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
             """Handle tool calls"""
             try:
-                if name == "ask_rag":
-                    return await self._ask_rag(arguments)
-                elif name == "search_vectors":
-                    return await self._search_vectors(arguments)
-                elif name == "store_memory":
-                    return await self._store_memory(arguments)
-                elif name == "get_memory":
-                    return await self._get_memory(arguments)
-                elif name == "add_note":
-                    return await self._add_note(arguments)
-                elif name == "search_notes":
-                    return await self._search_notes(arguments)
-                elif name == "list_collections":
-                    return await self._list_collections(arguments)
-                elif name == "index_repository":
-                    return await self._index_repository(arguments)
+                if name == "context_index_repo":
+                    return await self._context_index_repo(arguments)
+                if name == "context_search":
+                    return await self._context_search(arguments)
+                if name == "context_list_repos":
+                    return await self._context_list_repos()
+                if name == "memory_put":
+                    return await self._memory_put(arguments)
+                if name == "memory_get":
+                    return await self._memory_get(arguments)
+                if name == "memory_search":
+                    return await self._memory_search(arguments)
                 else:
                     return CallToolResult(
                         content=[
@@ -242,229 +216,300 @@ class ContextGatewayMCP:
                     isError=True,
                 )
 
-    async def _make_request(
-        self, method: str, endpoint: str, data: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
-        """Make HTTP request to gateway"""
-        headers = {
-            "Authorization": f"Bearer {self.gateway_token}",
-            "Content-Type": "application/json",
+    def _parse_repo_roots(self, raw: str) -> List[Path]:
+        parts: List[str] = []
+        for chunk in raw.split(os.pathsep):
+            parts.extend([p.strip() for p in chunk.split(",") if p.strip()])
+        roots: List[Path] = []
+        for part in parts:
+            try:
+                roots.append(Path(part).expanduser().resolve())
+            except Exception:
+                continue
+        return roots
+
+    def _is_allowed_repo_path(self, repo_path: Path) -> bool:
+        try:
+            resolved = repo_path.expanduser().resolve()
+        except Exception:
+            return False
+
+        for root in self.repo_roots:
+            try:
+                if resolved.is_relative_to(root):
+                    return True
+            except Exception:
+                # Python < 3.9 fallback not needed in our runtime, but keep safe
+                if str(resolved).startswith(str(root)):
+                    return True
+        return False
+
+    def _iter_repo_files(self, repo_root: Path) -> Iterable[Path]:
+        ignored_dirs = {
+            ".git",
+            ".venv",
+            "venv",
+            "node_modules",
+            "bin",
+            "obj",
+            ".hub-cache",
+        }
+        allowed_exts = {
+            ".md",
+            ".txt",
+            ".py",
+            ".cs",
+            ".json",
+            ".yml",
+            ".yaml",
+            ".toml",
+            ".js",
+            ".ts",
+            ".tsx",
+            ".jsx",
+            ".java",
+            ".kt",
+            ".go",
+            ".rs",
+            ".c",
+            ".cpp",
+            ".h",
+            ".hpp",
         }
 
-        url = f"{self.gateway_url}{endpoint}"
+        for path in repo_root.rglob("*"):
+            if not path.is_file():
+                continue
+            if any(part in ignored_dirs for part in path.parts):
+                continue
+            if path.suffix.lower() not in allowed_exts:
+                continue
+            yield path
 
-        async with httpx.AsyncClient() as client:
-            try:
-                if method.upper() == "GET":
-                    response = await client.get(url, headers=headers, timeout=30.0)
-                elif method.upper() == "POST":
-                    response = await client.post(
-                        url, json=data, headers=headers, timeout=30.0
-                    )
-                else:
-                    raise ValueError(f"Unsupported method: {method}")
+    def _chunk_text(
+        self, text: str, chunk_lines: int = 200, overlap_lines: int = 20
+    ) -> List[Tuple[int, int, str]]:
+        lines = text.splitlines()
+        if not lines:
+            return []
 
-                response.raise_for_status()
-                return response.json()
-            except httpx.HTTPError as e:
-                logger.error(f"HTTP request failed: {e}")
-                raise
-            except Exception as e:
-                logger.error(f"Request failed: {e}")
-                raise
+        chunks: List[Tuple[int, int, str]] = []
+        start = 0
+        while start < len(lines):
+            end = min(start + chunk_lines, len(lines))
+            content = "\n".join(lines[start:end])
+            chunks.append((start + 1, end, content))
+            if end >= len(lines):
+                break
+            start = max(0, end - overlap_lines)
+        return chunks
 
-    async def _ask_rag(self, args: Dict[str, Any]) -> CallToolResult:
-        """Handle RAG query"""
-        data = {"query": args["query"], "top_k": args.get("top_k", 5)}
-        if "repo" in args:
-            data["repo"] = args["repo"]
+    async def _embed_texts(self, texts: List[str]) -> List[List[float]]:
+        def _call() -> List[List[float]]:
+            resp = self._openai_client.embeddings.create(
+                model=self.embedding_model, input=texts, encoding_format="float"
+            )
+            return [d.embedding for d in resp.data]
 
-        result = await self._make_request("POST", "/ask", data)
+        return await asyncio.to_thread(_call)
 
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text",
-                    text=f"Answer: {result.get('answer', 'No answer')}\n\nSources:\n"
-                    + "\n".join(
-                        [
-                            f"- {chunk.file_path}:{chunk.start_line}-{chunk.end_line}"
-                            for chunk in result.get("chunks", [])
-                        ]
+    async def _ensure_collection(
+        self, repo_id: str, vector_size: int, force: bool
+    ) -> None:
+        def _call() -> None:
+            exists = self._qdrant.collection_exists(repo_id)
+            if exists and force:
+                self._qdrant.delete_collection(repo_id)
+                exists = False
+            if not exists:
+                self._qdrant.create_collection(
+                    collection_name=repo_id,
+                    vectors_config=qmodels.VectorParams(
+                        size=vector_size, distance=qmodels.Distance.COSINE
                     ),
                 )
-            ]
-        )
 
-    async def _search_vectors(self, args: Dict[str, Any]) -> CallToolResult:
-        """Handle vector search"""
-        data = {
-            "query": args["query"],
-            "top_k": args.get("top_k", 5),
-            "include_content": args.get("include_content", True),
-        }
-        if "repo" in args:
-            data["repo"] = args["repo"]
+        await asyncio.to_thread(_call)
 
-        result = await self._make_request("POST", "/search", data)
+    async def _context_index_repo(self, args: Dict[str, Any]) -> CallToolResult:
+        repo_id = args["repo_id"]
+        repo_path = Path(args["repo_path"])
+        force_reindex = bool(args.get("force_reindex", False))
 
-        formatted_results = []
-        for chunk in result.get("chunks", []):
-            formatted_results.append(
-                f"File: {chunk.file_path}:{chunk.start_line}-{chunk.end_line}\n"
-                f"Score: {chunk.relevance:.3f}\n"
-                f"Content: {chunk.content[:200]}...\n"
-            )
-
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text",
-                    text=f"Found {len(formatted_results)} results:\n\n"
-                    + "\n---\n".join(formatted_results),
-                )
-            ]
-        )
-
-    async def _store_memory(self, args: Dict[str, Any]) -> CallToolResult:
-        """Handle memory storage"""
-        data = {
-            "op": "put",
-            "agent_id": args["agent_id"],
-            "key": args["key"],
-            "value": args["value"],
-        }
-
-        result = await self._make_request("POST", "/memory", data)
-
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text", text=f"Stored memory: {args['agent_id']}/{args['key']}"
-                )
-            ]
-        )
-
-    async def _get_memory(self, args: Dict[str, Any]) -> CallToolResult:
-        """Handle memory retrieval"""
-        data = {"op": "get", "agent_id": args["agent_id"], "key": args["key"]}
-
-        result = await self._make_request("POST", "/memory", data)
-
-        if result.get("success") and result.get("data"):
+        if not repo_path.exists() or not repo_path.is_dir():
             return CallToolResult(
                 content=[
-                    TextContent(type="text", text=f"Memory value: {result['data']}")
-                ]
+                    TextContent(
+                        type="text", text=f"repo_path is not a directory: {repo_path}"
+                    )
+                ],
+                isError=True,
             )
-        else:
+
+        if not self._is_allowed_repo_path(repo_path):
             return CallToolResult(
                 content=[
                     TextContent(
                         type="text",
-                        text=f"Memory not found: {args['agent_id']}/{args['key']}",
+                        text=(
+                            "repo_path is not allowed. Configure MCP_REPO_ROOTS to allow indexing. "
+                            f"repo_path={repo_path}"
+                        ),
                     )
+                ],
+                isError=True,
+            )
+
+        max_file_bytes = 1_000_000
+        docs: List[Tuple[str, int, int, str]] = []
+
+        for file_path in self._iter_repo_files(repo_path):
+            try:
+                if file_path.stat().st_size > max_file_bytes:
+                    continue
+                text = file_path.read_text(encoding="utf-8", errors="ignore")
+                for start_line, end_line, content in self._chunk_text(text):
+                    rel_path = str(file_path.relative_to(repo_path)).replace("\\", "/")
+                    docs.append((rel_path, start_line, end_line, content))
+            except Exception:
+                continue
+
+        if not docs:
+            return CallToolResult(
+                content=[TextContent(type="text", text="No indexable files found.")],
+                isError=False,
+            )
+
+        embeddings = await self._embed_texts([d[3] for d in docs])
+        vector_size = len(embeddings[0]) if embeddings else 0
+        await self._ensure_collection(repo_id, vector_size, force_reindex)
+
+        points: List[qmodels.PointStruct] = []
+        for (rel_path, start_line, end_line, content), vector in zip(docs, embeddings):
+            point_id = f"{rel_path}:{start_line}:{end_line}"
+            payload = {
+                "file_path": rel_path,
+                "start_line": start_line,
+                "end_line": end_line,
+                "content": content,
+            }
+            points.append(
+                qmodels.PointStruct(id=point_id, vector=vector, payload=payload)
+            )
+
+        def _upsert() -> None:
+            self._qdrant.upsert(collection_name=repo_id, points=points)
+
+        await asyncio.to_thread(_upsert)
+
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text",
+                    text=f"Indexed repo_id={repo_id}. Files/chunks indexed: {len(points)}",
+                )
+            ]
+        )
+
+    async def _context_search(self, args: Dict[str, Any]) -> CallToolResult:
+        repo_id = args["repo_id"]
+        query = args["query"]
+        top_k = int(args.get("top_k", 5))
+        include_content = bool(args.get("include_content", True))
+
+        query_vec = (await self._embed_texts([query]))[0]
+
+        def _search() -> List[qmodels.ScoredPoint]:
+            return self._qdrant.search(
+                collection_name=repo_id,
+                query_vector=query_vec,
+                limit=top_k,
+                with_payload=True,
+            )
+
+        points = await asyncio.to_thread(_search)
+
+        lines: List[str] = []
+        for p in points:
+            payload = p.payload or {}
+            file_path = payload.get("file_path", "unknown")
+            start_line = payload.get("start_line")
+            end_line = payload.get("end_line")
+            score = getattr(p, "score", None)
+            header = (
+                f"{file_path}:{start_line}-{end_line} score={score:.4f}"
+                if score is not None
+                else f"{file_path}:{start_line}-{end_line}"
+            )
+            lines.append(header)
+            if include_content:
+                content = payload.get("content", "")
+                lines.append(content)
+                lines.append("---")
+
+        return CallToolResult(
+            content=[TextContent(type="text", text="\n".join(lines) or "No results.")]
+        )
+
+    async def _context_list_repos(self) -> CallToolResult:
+        def _call() -> List[str]:
+            return [c.name for c in self._qdrant.get_collections().collections]
+
+        repos = await asyncio.to_thread(_call)
+        text = "\n".join(repos) if repos else "(no indexed repos)"
+        return CallToolResult(content=[TextContent(type="text", text=text)])
+
+    async def _letta_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: Optional[Dict[str, Any]] = None,
+        json: Any = None,
+    ) -> Dict[str, Any]:
+        url = f"{self.letta_url.rstrip('/')}{path}"
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.request(method, url, params=params, json=json)
+            resp.raise_for_status()
+            return resp.json() if resp.content else {}
+
+    async def _memory_put(self, args: Dict[str, Any]) -> CallToolResult:
+        agent_id = args["agent_id"]
+        key = args["key"]
+        value = args["value"]
+        await self._letta_request(
+            "POST", f"/v1/agents/{agent_id}/memory", json={"key": key, "value": value}
+        )
+        return CallToolResult(
+            content=[TextContent(type="text", text=f"Stored memory: {agent_id}/{key}")]
+        )
+
+    async def _memory_get(self, args: Dict[str, Any]) -> CallToolResult:
+        agent_id = args["agent_id"]
+        key = args["key"]
+        data = await self._letta_request(
+            "GET", f"/v1/agents/{agent_id}/memory", params={"key": key}
+        )
+        value = data.get("value")
+        if value is None:
+            return CallToolResult(
+                content=[
+                    TextContent(type="text", text=f"Memory not found: {agent_id}/{key}")
                 ]
             )
+        return CallToolResult(content=[TextContent(type="text", text=str(value))])
 
-    async def _add_note(self, args: Dict[str, Any]) -> CallToolResult:
-        """Handle note addition"""
-        data = {"op": "add", "text": args["text"]}
-        if "repo" in args:
-            data["repo"] = args["repo"]
-        if "tags" in args:
-            data["tags"] = args["tags"]
-
-        result = await self._make_request("POST", "/notes", data)
-
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text", text=f"Added note: {result.get('message', 'Success')}"
-                )
-            ]
+    async def _memory_search(self, args: Dict[str, Any]) -> CallToolResult:
+        agent_id = args["agent_id"]
+        query = args["query"]
+        limit = int(args.get("limit", 10))
+        data = await self._letta_request(
+            "GET",
+            f"/v1/agents/{agent_id}/memory/search",
+            params={"query": query, "limit": limit},
         )
-
-    async def _search_notes(self, args: Dict[str, Any]) -> CallToolResult:
-        """Handle note search"""
-        data = {"op": "search", "query": args["query"], "limit": args.get("limit", 10)}
-        if "repo" in args:
-            data["repo"] = args["repo"]
-        if "tags" in args:
-            data["tags"] = args["tags"]
-
-        result = await self._make_request("POST", "/notes", data)
-
-        formatted_notes = []
-        for note in result.get("notes", []):
-            tags_str = ", ".join(note.tags) if note.tags else "none"
-            formatted_notes.append(
-                f"ID: {note.id}\n"
-                f"Repo: {note.repo or 'none'}\n"
-                f"Tags: {tags_str}\n"
-                f"Created: {note.created_at}\n"
-                f"Text: {note.text[:200]}...\n"
-            )
-
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text",
-                    text=f"Found {len(formatted_notes)} notes:\n\n"
-                    + "\n---\n".join(formatted_notes),
-                )
-            ]
-        )
-
-    async def _list_collections(self, args: Dict[str, Any]) -> CallToolResult:
-        """Handle collection listing"""
-        result = await self._make_request("GET", "/search/collections")
-
-        collections = result.get("collections", [])
-        info = result.get("info", {})
-
-        formatted_collections = []
-        for collection in collections:
-            collection_info = info.get(collection, {})
-            formatted_collections.append(
-                f"Collection: {collection}\n"
-                f"Points: {collection_info.get('points_count', 0)}\n"
-                f"Vector Size: {collection_info.get('vector_size', 'unknown')}\n"
-                f"Status: {collection_info.get('status', 'unknown')}\n"
-            )
-
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text",
-                    text="Available collections:\n\n"
-                    + "\n---\n".join(formatted_collections),
-                )
-            ]
-        )
-
-    async def _index_repository(self, args: Dict[str, Any]) -> CallToolResult:
-        """Handle repository indexing"""
-        data = {
-            "repo_path": args["repo_path"],
-            "collection_name": args["collection_name"],
-            "force_reindex": args.get("force_reindex", False),
-        }
-
-        result = await self._make_request("POST", "/search/index", data)
-
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text",
-                    text=f"Indexing completed:\n"
-                    f"Files processed: {result.get('files_processed', 0)}\n"
-                    f"Chunks indexed: {result.get('chunks_indexed', 0)}\n"
-                    f"Time: {result.get('indexing_time_ms', 0)}ms\n"
-                    f"Errors: {len(result.get('errors', []))}",
-                )
-            ]
-        )
+        results = data.get("results", [])
+        return CallToolResult(content=[TextContent(type="text", text=str(results))])
 
     async def run(self):
         """Run the MCP server"""
@@ -476,23 +521,16 @@ class ContextGatewayMCP:
 
 async def main():
     """Main entry point"""
-    import os
-
-    # Get configuration from environment
-    gateway_url = os.getenv("GATEWAY_URL", "http://gateway:5057")
-    gateway_token = os.getenv("GATEWAY_TOKEN", "your-gateway-token")
-
-    if not gateway_token or gateway_token == "your-gateway-token":
-        logger.error("GATEWAY_TOKEN environment variable is required")
+    try:
+        mcp_server = ContextGatewayMCP()
+    except Exception as e:
+        logger.error(f"Failed to initialize MCP server: {e}")
         sys.exit(1)
 
-    # Create and run MCP server
-    mcp_server = ContextGatewayMCP()
-    mcp_server.gateway_url = gateway_url
-    mcp_server.gateway_token = gateway_token
-
-    logger.info("Starting Context Gateway MCP server")
-    logger.info(f"Gateway URL: {gateway_url}")
+    logger.info("Starting local Context MCP server")
+    logger.info(f"LETTA_URL: {mcp_server.letta_url}")
+    logger.info(f"QDRANT_URL: {mcp_server.qdrant_url}")
+    logger.info(f"MCP_REPO_ROOTS: {', '.join(str(p) for p in mcp_server.repo_roots)}")
 
     await mcp_server.run()
 
