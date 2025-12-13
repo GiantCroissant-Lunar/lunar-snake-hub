@@ -515,7 +515,7 @@ tasks:
       done
 
       # Check agent rules
-      RULE_COUNT=$(find .agent/rules -name "*.md" 2>/dev/null | wc -l)
+      RULE_COUNT=$(python -c "import glob; print(len(glob.glob('.agent/rules/**/*.md', recursive=True)))")
       echo "  📋 Agent rules (.agent/rules): $RULE_COUNT files"
 
       if [ $ERRORS -gt 0 ]; then
