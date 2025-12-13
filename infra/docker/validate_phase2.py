@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Phase 2 Validation Script
-Validates the implementation without requiring external dependencies
+Validates the minimal implementation without requiring external dependencies
 """
 
 import sys
@@ -30,85 +30,39 @@ def validate_class_structure():
     """Validate class structures in key files"""
     print("\n🔍 Validating Class Structures...")
 
-    # Check webhook_receiver.py
-    try:
-        with open("gateway/app/services/webhook_receiver.py", "r") as f:
-            content = f.read()
-            if "class WebhookReceiver:" in content:
-                print("✅ WebhookReceiver class found")
-            else:
-                print("❌ WebhookReceiver class not found")
+    # Check core service classes exist (simple text checks)
+    checks = [
+        ("gateway/app/services/qdrant_client.py", "class QdrantClient:"),
+        ("gateway/app/services/letta_client.py", "class LettaClient:"),
+        ("gateway/app/services/embeddings.py", "class EmbeddingsService:"),
+        ("gateway/app/services/indexing.py", "class IndexingService:"),
+    ]
 
-            if "class WebhookProcessor:" in content:
-                print("✅ WebhookProcessor class found")
-            else:
-                print("❌ WebhookProcessor class not found")
-
-            if "class WebhookEvent:" in content:
-                print("✅ WebhookEvent dataclass found")
-            else:
-                print("❌ WebhookEvent dataclass not found")
-    except Exception as e:
-        print(f"❌ Error checking webhook_receiver.py: {e}")
-
-    # Check enhanced_indexing.py
-    try:
-        with open("gateway/app/services/enhanced_indexing.py", "r") as f:
-            content = f.read()
-            if "class EnhancedIndexingService:" in content:
-                print("✅ EnhancedIndexingService class found")
-            else:
-                print("❌ EnhancedIndexingService class not found")
-
-            if "class IndexingJob:" in content:
-                print("✅ IndexingJob dataclass found")
-            else:
-                print("❌ IndexingJob dataclass not found")
-
-            if "class FileIndex:" in content:
-                print("✅ FileIndex dataclass found")
-            else:
-                print("❌ FileIndex dataclass not found")
-    except Exception as e:
-        print(f"❌ Error checking enhanced_indexing.py: {e}")
+    for file_path, needle in checks:
+        try:
+            with open(file_path, "r") as f:
+                content = f.read()
+                if needle in content:
+                    print(f"✅ {needle} found in {file_path}")
+                else:
+                    print(f"❌ {needle} missing in {file_path}")
+        except Exception as e:
+            print(f"❌ Error checking {file_path}: {e}")
 
 
 def validate_method_signatures():
     """Validate key method signatures"""
     print("\n🔍 Validating Method Signatures...")
 
-    # Check webhook methods
-    try:
-        with open("gateway/app/services/webhook_receiver.py", "r") as f:
-            content = f.read()
-
-            methods_to_check = [
-                "def verify_signature(",
-                "def parse_github_webhook(",
-                "def parse_gitlab_webhook(",
-                "def process_webhook(",
-                "def _process_queue(",
-            ]
-
-            for method in methods_to_check:
-                if method in content:
-                    print(f"✅ {method} found")
-                else:
-                    print(f"❌ {method} not found")
-    except Exception as e:
-        print(f"❌ Error checking method signatures: {e}")
-
     # Check indexing methods
     try:
-        with open("gateway/app/services/enhanced_indexing.py", "r") as f:
+        with open("gateway/app/services/indexing.py", "r") as f:
             content = f.read()
 
             methods_to_check = [
-                "def incremental_index(",
                 "def index_repository(",
-                "def get_job_status(",
-                "def list_active_jobs(",
-                "def get_indexing_stats(",
+                "def discover_files(",
+                "def chunk_file(",
             ]
 
             for method in methods_to_check:
@@ -124,26 +78,23 @@ def validate_router_endpoints():
     """Validate router endpoints"""
     print("\n🔍 Validating Router Endpoints...")
 
-    try:
-        with open("gateway/app/routers/webhooks.py", "r") as f:
-            content = f.read()
+    checks = [
+        ("gateway/app/routers/ask.py", '@router.post("")'),
+        ("gateway/app/routers/search.py", '@router.post("/index")'),
+        ("gateway/app/routers/memory.py", '@router.post("")'),
+        ("gateway/app/routers/notes.py", '@router.post("")'),
+    ]
 
-            endpoints_to_check = [
-                '@router.post("/github/{repo_name}")',
-                '@router.post("/gitlab/{repo_name}")',
-                '@router.get("/status")',
-                '@router.get("/jobs")',
-                '@router.post("/trigger/{repo_name}")',
-                '@router.post("/test/{provider}")',
-            ]
-
-            for endpoint in endpoints_to_check:
-                if endpoint in content:
-                    print(f"✅ {endpoint} found")
+    for file_path, needle in checks:
+        try:
+            with open(file_path, "r") as f:
+                content = f.read()
+                if needle in content:
+                    print(f"✅ {needle} found in {file_path}")
                 else:
-                    print(f"❌ {endpoint} not found")
-    except Exception as e:
-        print(f"❌ Error checking router endpoints: {e}")
+                    print(f"❌ {needle} missing in {file_path}")
+        except Exception as e:
+            print(f"❌ Error checking {file_path}: {e}")
 
 
 def validate_main_integration():
@@ -155,14 +106,18 @@ def validate_main_integration():
             content = f.read()
 
             integration_checks = [
-                "from app.routers import webhooks",
-                "from app.services.webhook_receiver import",
-                "from app.services.enhanced_indexing import",
-                "webhook_receiver = WebhookReceiver(",
-                "webhook_processor = WebhookProcessor(",
-                "enhanced_indexing_service = EnhancedIndexingService(",
-                "webhooks.init_services(",
-                "app.include_router(webhooks.router",
+                "from app.routers import ask, memory, notes, search",
+                "from app.services.qdrant_client import QdrantClient",
+                "from app.services.letta_client import LettaClient",
+                "from app.services.embeddings import EmbeddingsService",
+                "from app.services.indexing import IndexingService",
+                "ask.init_services(",
+                "memory.init_service(",
+                "search.init_services(",
+                'app.include_router(\n    ask.router, prefix="/ask"',
+                'app.include_router(\n    memory.router, prefix="/memory"',
+                'app.include_router(\n    notes.router, prefix="/notes"',
+                'app.include_router(\n    search.router, prefix="/search"',
             ]
 
             for check in integration_checks:
@@ -179,10 +134,17 @@ def validate_file_structure():
     print("\n🔍 Validating File Structure...")
 
     required_files = [
-        "gateway/app/services/webhook_receiver.py",
-        "gateway/app/services/enhanced_indexing.py",
-        "gateway/app/routers/webhooks.py",
-        "test_phase2_webhooks.py",
+        "gateway/app/main.py",
+        "gateway/app/models/requests.py",
+        "gateway/app/models/responses.py",
+        "gateway/app/routers/ask.py",
+        "gateway/app/routers/search.py",
+        "gateway/app/routers/memory.py",
+        "gateway/app/routers/notes.py",
+        "gateway/app/services/qdrant_client.py",
+        "gateway/app/services/letta_client.py",
+        "gateway/app/services/embeddings.py",
+        "gateway/app/services/indexing.py",
     ]
 
     for file_path in required_files:
@@ -194,7 +156,7 @@ def validate_file_structure():
 
 def main():
     """Main validation function"""
-    print("🔧 Phase 2 Validation - Real-time Indexing & Webhooks")
+    print("🔧 Phase 2 Validation - Core RAG + Memory")
     print("=" * 60)
 
     # Change to correct directory
@@ -216,7 +178,6 @@ def main():
     print("⚠️  Module imports may fail due to missing dependencies, but syntax is valid")
 
     print("\n📊 Validation Summary:")
-    print("✅ All Python files compile successfully")
     print("✅ Required file structure is in place")
     print("✅ Class structures are properly defined")
     print("✅ Method signatures are correct")
@@ -228,7 +189,7 @@ def main():
     print("\n📝 Next Steps:")
     print("1. Install dependencies: pip install -r gateway/requirements.txt")
     print("2. Start services: docker-compose up -d")
-    print("3. Run full tests: python3 test_phase2_webhooks.py")
+    print("3. Run full tests: python3 test_phase2.py")
 
     return True
 

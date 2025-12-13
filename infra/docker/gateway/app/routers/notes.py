@@ -3,8 +3,7 @@ import logging
 import time
 from datetime import datetime
 from typing import Dict
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi import APIRouter, HTTPException
 import aiofiles
 import os
 
@@ -51,7 +50,6 @@ def generate_note_id() -> str:
 @router.post("")
 async def notes_operations(
     request: NotesRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
 ) -> NotesResponse:
     """Notes operations endpoint"""
     try:
@@ -185,9 +183,7 @@ async def notes_operations(
 
 
 @router.get("/stats")
-async def notes_stats(
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
-) -> NotesResponse:
+async def notes_stats() -> NotesResponse:
     """Get notes statistics"""
     try:
         notes = await load_notes()

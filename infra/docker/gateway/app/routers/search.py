@@ -1,7 +1,7 @@
 import time
 import logging
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
+from pathlib import Path
+from fastapi import APIRouter, HTTPException
 
 from app.models.requests import SearchRequest, IndexRequest, ReindexRequest
 from app.models.responses import SearchResponse, ChunkInfo, IndexResponse
@@ -46,7 +46,6 @@ def build_filter(hints: list = None) -> dict:
 @router.post("")
 async def vector_search(
     request: SearchRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
 ) -> SearchResponse:
     """Vector search endpoint (without LLM generation)"""
     start_time = time.time()
@@ -104,9 +103,7 @@ async def vector_search(
 
 
 @router.get("/collections")
-async def list_collections(
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
-) -> dict:
+async def list_collections() -> dict:
     """List all available collections"""
     try:
         collections = qdrant_client.list_collections()
@@ -131,7 +128,6 @@ async def list_collections(
 @router.get("/collections/{collection_name}")
 async def get_collection_info(
     collection_name: str,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
 ) -> dict:
     """Get detailed information about a collection"""
     try:
@@ -155,7 +151,6 @@ async def get_collection_info(
 @router.post("/index")
 async def index_repository(
     request: IndexRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
 ) -> IndexResponse:
     """Index a repository into Qdrant"""
     start_time = time.time()
@@ -250,7 +245,6 @@ async def index_repository(
 @router.post("/reindex")
 async def reindex_changed_files(
     request: ReindexRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
 ) -> IndexResponse:
     """Reindex specific changed files"""
     start_time = time.time()
@@ -273,9 +267,6 @@ async def reindex_changed_files(
 
         for file_path in request.changed:
             try:
-                # Generate point ID pattern for this file
-                base_pattern = f"{file_path}:"
-
                 # Delete existing points for this file
                 # Note: In a real implementation, you'd query for exact matches
                 # For now, we'll use a simple pattern

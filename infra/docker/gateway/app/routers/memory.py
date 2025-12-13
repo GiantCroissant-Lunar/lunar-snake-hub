@@ -1,6 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi import APIRouter, HTTPException
 
 from app.models.requests import MemoryRequest
 from app.models.responses import MemoryResponse
@@ -22,7 +21,6 @@ def init_service(letta: LettaClient):
 @router.post("")
 async def memory_operations(
     request: MemoryRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
 ) -> MemoryResponse:
     """Memory operations endpoint"""
     try:
@@ -109,9 +107,7 @@ async def memory_operations(
 
 
 @router.get("/agents")
-async def list_agents(
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
-) -> MemoryResponse:
+async def list_agents() -> MemoryResponse:
     """List all agents"""
     try:
         agents = await letta_client.list_agents()
@@ -126,7 +122,6 @@ async def list_agents(
 @router.get("/agents/{agent_id}")
 async def get_agent_info(
     agent_id: str,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
 ) -> MemoryResponse:
     """Get agent information"""
     try:

@@ -1,7 +1,6 @@
 import time
 import logging
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi import APIRouter, HTTPException
 
 from app.models.requests import AskRequest
 from app.models.responses import AskResponse, ChunkInfo
@@ -69,7 +68,6 @@ def build_filter(hints: list = None) -> dict:
 @router.post("")
 async def ask_rag(
     request: AskRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPAuthorizationCredentials()),
 ) -> AskResponse:
     """RAG query endpoint"""
     start_time = time.time()
