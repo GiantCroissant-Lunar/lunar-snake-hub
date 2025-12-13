@@ -139,6 +139,14 @@ class ContextGatewayMCP:
                                     "type": "string",
                                     "description": "Optional filter to only search within an indexed repo_key (returned in results)",
                                 },
+                                "repo": {
+                                    "type": "string",
+                                    "description": "Optional friendly repo selector (e.g. 'mung-bean'). Server will resolve to a repo_key if possible.",
+                                },
+                                "repo_path": {
+                                    "type": "string",
+                                    "description": "Optional absolute repo path. If provided, server computes repo_key from it.",
+                                },
                             },
                             "required": ["query"],
                         },
@@ -531,6 +539,23 @@ class ContextGatewayMCP:
         top_k = int(args.get("top_k", 5))
         include_content = bool(args.get("include_content", True))
         repo_key = args.get("repo_key")
+        repo = args.get("repo")
+        repo_path = args.get("repo_path")
+
+        if not repo_key and repo_path:
+            try:
+                repo_key = self._repo_key(Path(repo_path))
+            except Exception:
+                repo_key = None
+
+        if not repo_key and repo:
+            resolved, error_text = await self._resolve_repo_key(repo_id, str(repo))
+            if error_text:
+                return CallToolResult(
+                    content=[TextContent(type="text", text=error_text)],
+                    isError=True,
+                )
+            repo_key = resolved
 
         query_vec = (await self._embed_texts([query]))[0]
 
@@ -579,6 +604,87 @@ class ContextGatewayMCP:
 
         return CallToolResult(
             content=[TextContent(type="text", text="\n".join(lines) or "No results.")]
+        )
+
+    async def _resolve_repo_key(
+        self, repo_id: str, selector: str
+    ) -> Tuple[Optional[str], Optional[str]]:
+        sel = (selector or "").strip()
+        if not sel:
+            return None, "repo selector is empty"
+
+        # Allow passing a path as the selector.
+        if ":" in sel or "\\" in sel or "/" in sel:
+            try:
+                return self._repo_key(Path(sel)), None
+            except Exception:
+                return (
+                    None,
+                    f"repo selector looks like a path but could not be parsed: {sel}",
+                )
+
+        def _scroll_unique() -> Dict[str, str]:
+            unique: Dict[str, str] = {}
+            offset = None
+            while len(unique) < 500:
+                points, offset = self._qdrant.scroll(
+                    collection_name=repo_id,
+                    limit=256,
+                    offset=offset,
+                    with_payload=True,
+                    with_vectors=False,
+                )
+                for p in points:
+                    payload = p.payload or {}
+                    rk = payload.get("repo_key")
+                    rp = payload.get("repo_path")
+                    if rk and rk not in unique:
+                        unique[rk] = rp or ""
+                        if len(unique) >= 500:
+                            break
+                if not offset:
+                    break
+            return unique
+
+        repo_index = await asyncio.to_thread(_scroll_unique)
+
+        # Match either by exact repo_key, repo base name, or prefix.
+        matches: List[str] = []
+        for rk, rp in repo_index.items():
+            base = rk.split("-", 1)[0]
+            if sel == rk or sel == base or rk.startswith(sel) or base.startswith(sel):
+                matches.append(rk)
+                continue
+
+            if rp:
+                try:
+                    rp_base = Path(rp).name
+                except Exception:
+                    rp_base = ""
+                if rp_base and (sel == rp_base or rp_base.startswith(sel)):
+                    matches.append(rk)
+
+        matches = sorted(set(matches))
+        if len(matches) == 1:
+            return matches[0], None
+        if not matches:
+            return (
+                None,
+                (
+                    f"No repo_key matched repo='{sel}'. "
+                    "Use context_list_repo_keys to see available repo_key values."
+                ),
+            )
+
+        preview = "\n".join(
+            [f"- {rk}\t{repo_index.get(rk, '')}".rstrip() for rk in matches[:10]]
+        )
+        return (
+            None,
+            (
+                f"repo='{sel}' is ambiguous ({len(matches)} matches). "
+                "Please specify repo_key, or pass repo_path. Matches:\n" + preview
+            ),
         )
 
     async def _context_list_repos(self) -> CallToolResult:
