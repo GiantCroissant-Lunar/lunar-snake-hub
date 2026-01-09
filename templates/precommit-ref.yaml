@@ -1,0 +1,10 @@
+# === lunar-snake-hub:start ===
+- repo: local
+  hooks:
+  - id: hub-config
+    name: Lunar Snake Hub Checks
+    entry: pre-commit run --config {hubPath}/.pre-commit-config.yaml
+    language: system
+    pass_filenames: false
+    always_run: true
+# === lunar-snake-hub:end ===

@@ -4,10 +4,11 @@
   "description": "Agent rules, pre-commit hooks, and shared tasks for Lunar Snake projects.",
   "license": "UNLICENSED",
   "files": [
+    "hub.config.json",
+    "templates",
     "Taskfile.hub.yml",
-    "precommit/hooks",
-    "precommit/utils/install.ps1",
-    "precommit/utils/uninstall.ps1",
+    "precommit",
+    ".pre-commit-config.yaml",
     ".agent",
     "scripts",
     "docs/operations/DOGFOODING.md"

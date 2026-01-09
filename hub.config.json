@@ -1,0 +1,20 @@
+{
+  "inject": [
+    {
+      "target": ".agent/rules/00-index.md",
+      "compare": ".agent/rules/00-index.md",
+      "position": "prepend",
+      "template": "agent-rules-ref.md"
+    },
+    {
+      "target": ".pre-commit-config.yaml",
+      "compare": ".pre-commit-config.yaml",
+      "position": "after:repos:",
+      "template": "precommit-ref.yaml"
+    }
+  ],
+  "hooks": {
+    "source": "precommit/hooks",
+    "files": ["pre-commit", "commit-msg", "pre-push"]
+  }
+}

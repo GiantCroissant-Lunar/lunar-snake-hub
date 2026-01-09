@@ -49,3 +49,4 @@ Thumbs.db
 
 # Hub-specific (dogfooding)
 .hub-cache/
+.hub-installed.json

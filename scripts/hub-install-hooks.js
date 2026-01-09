@@ -26,7 +26,8 @@ try {
   runPwsh(script, [
     '-HooksSource', hooksSource,
     '-HooksTarget', hooksTarget,
-    '-BackupDir', backupDir
+    '-BackupDir', backupDir,
+    '-PackageRoot', packageRoot
   ]);
 } catch (e) {
   console.error('[hub] install failed:', e?.message || e);
