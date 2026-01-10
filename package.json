@@ -9,6 +9,7 @@
     "Taskfile.hub.yml",
     "precommit",
     ".pre-commit-config.yaml",
+    "pre-commit-config.consumer.yaml",
     ".agent",
     "scripts",
     "docs/operations/DOGFOODING.md"
