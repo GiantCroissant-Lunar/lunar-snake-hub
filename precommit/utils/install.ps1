@@ -160,8 +160,14 @@ function Add-InjectedContent {
             if ($existingContent -match "(?m)^$afterPattern\s*$") {
                 $newContent = $existingContent -replace "(?m)^($afterPattern)\s*$", "`$1`n$InjectContent"
             } else {
-                Write-Warn "Pattern '$afterPattern' not found in $TargetPath, prepending instead"
-                $newContent = $InjectContent + "`n" + $existingContent
+                # Pattern not found - if it's 'repos:', create valid YAML structure
+                if ($afterPattern -eq "repos:") {
+                    Write-Warn "Pattern '$afterPattern' not found in $TargetPath, creating with repos: key"
+                    $newContent = "repos:`n$InjectContent"
+                } else {
+                    Write-Warn "Pattern '$afterPattern' not found in $TargetPath, prepending instead"
+                    $newContent = $InjectContent + "`n" + $existingContent
+                }
             }
         }
         default {

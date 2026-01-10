@@ -39,15 +39,6 @@ repos:
     args: [--fix]
     exclude: ^(node_modules/|\.hub-cache/)
 
-  # === YAML Formatting ===
-- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.15.0
-  hooks:
-  - id: pretty-format-yaml
-    name: Format YAML files
-    args: [--autofix, --indent, '2']
-    exclude: ^(Taskfile.*\.yml$|\.markdownlintrc$)
-
   # === Python (if project uses Python) ===
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.9.3
